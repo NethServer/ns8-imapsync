@@ -1,75 +1,4 @@
 {
-    "common": {
-        "required": "Obbligatorio",
-        "processing": "Elaborazione in corso...",
-        "work_in_progress": "In lavorazione",
-        "save": "Salva",
-        "cancel": "Annulla"
-    },
-    "status": {
-        "node": "Nodo",
-        "services": "Servizio | Servizi",
-        "no_volumes": "Nessun volume",
-        "title": "Stato",
-        "name": "Nome",
-        "size": "Dimensione",
-        "created": "Creato",
-        "no_services": "Nessun servizio",
-        "no_images": "Nessuna immagine",
-        "app_images": "Immagine app|Immagini app",
-        "app_instance": "Istanza app",
-        "app_volumes": "Volume app|Volumi app",
-        "installation_node": "Nodo",
-        "mount": "Percorso di mount"
-    },
-    "settings": {
-        "save": "Salva",
-        "title": "Impostazioni",
-        "configure_instance": "Configura {instance}",
-        "test_field": "Campo di test",
-        "mail_server_fqdn": "Mail server",
-        "configuring": "Configuring",
-        "instance_configuration": "Configure Imapsync",
-        "choose_the_mail_server_to_use": "Choose the mail server from which to retrieve users mailboxes",
-        "choose_mail_server": "Select a domain",
-        "mail_server_is_not_valid": "This mail server is not valid"
-    },
-    "error": {
-        "error": "Errore",
-        "404": "Risorsa non trovata",
-        "validation_error": "Errore di validazione",
-        "network_error": "Errore di rete",
-        "cannot_retrieve_installed_modules": "Impossibile elencare moduli installati",
-        "cannot_retrieve_module_info": "Impossibile recuperare info modulo",
-        "network_timeout": "Timeout di rete",
-        "generic_error": "Qualcosa è andato storto",
-        "401": "Autenticazione non valida",
-        "403": "Operazione non autorizzata"
-    },
-    "action": {
-        "configure-module": "Configura modulo",
-        "get-configuration": "Visualizza configurazione",
-        "get-status": "Visualizza stato",
-        "get-module-info": "Visualizza info modulo",
-        "get-name": "Visualizza nome",
-        "list-backup-repositories": "Elenca repository di backup",
-        "list-backups": "Elenca backup",
-        "list-installed-modules": "Elenco moduli installati",
-        "start-task": "Start task",
-        "Tasks_list_error": "Error on action list-tasks",
-        "list-tasks": "List the tasks",
-        "stop-task": "Stop task",
-        "list-informations": "List informations",
-        "start-all-tasks": "Start all tasks",
-        "stop-all-tasks": "Stop all tasks",
-        "create-task": "Create task"
-    },
-    "task": {
-        "cannot_create_task": "Impossibile eseguire task {action}"
-    },
-    "about": {
-        "title": "Informazioni"
-    },
     "tasks": {
         "start_by^_and_end_by$": "For exact match you should start by ^ and end by $",
         "delete_on_remote": "Delete messages on remote once synchronized",
@@ -150,5 +79,75 @@
         "exclude_folder": "Folders exclusion",
         "local_user": "Local user",
         "select_your_encryption": "Select encryption"
+    },
+    "settings": {
+        "mail_server_fqdn": "Mail server",
+        "configure_instance": "Configure {instance}",
+        "configuring": "Configuring",
+        "instance_configuration": "Configure Imapsync",
+        "choose_the_mail_server_to_use": "Choose the mail server from which to retrieve users mailboxes",
+        "choose_mail_server": "Select a domain",
+        "mail_server_is_not_valid": "This mail server is not valid",
+        "save": "Save",
+        "title": "Settings"
+    },
+    "error": {
+        "403": "Operation not authorized",
+        "cannot_retrieve_installed_modules": "Cannot retrieve installed modules",
+        "401": "Invalid authentication",
+        "cannot_retrieve_module_info": "Cannot retrieve module info",
+        "generic_error": "Something went wrong",
+        "error": "Error",
+        "network_timeout": "Network timeout",
+        "404": "Resource not found",
+        "network_error": "Network error",
+        "validation_error": "Validation error"
+    },
+    "action": {
+        "start-task": "Start task",
+        "Tasks_list_error": "Error on action list-tasks",
+        "list-backup-repositories": "List backup repositories",
+        "list-tasks": "List the tasks",
+        "stop-task": "Stop task",
+        "list-informations": "List informations",
+        "start-all-tasks": "Start all tasks",
+        "get-module-info": "Get module info",
+        "stop-all-tasks": "Stop all tasks",
+        "list-installed-modules": "List installed modules",
+        "list-backups": "List backups",
+        "get-status": "Get status",
+        "create-task": "Create task",
+        "configure-module": "Configure module",
+        "get-configuration": "Get configuration",
+        "get-name": "Get name"
+    },
+    "common": {
+        "required": "Required",
+        "save": "Save",
+        "work_in_progress": "Work in progress",
+        "cancel": "Cancel",
+        "processing": "Processing..."
+    },
+    "status": {
+        "created": "Created",
+        "size": "Size",
+        "name": "Name",
+        "no_images": "No images",
+        "app_volumes": "App volume | App volumes",
+        "services": "Service | Services",
+        "app_images": "App image | App images",
+        "no_services": "No services",
+        "app_instance": "App instance",
+        "mount": "Mount",
+        "title": "Status",
+        "installation_node": "Installation node",
+        "node": "Node",
+        "no_volumes": "No volumes"
+    },
+    "about": {
+        "title": "About"
+    },
+    "task": {
+        "cannot_create_task": "Cannot create task {action}"
     }
 }
