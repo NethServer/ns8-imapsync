@@ -43,7 +43,7 @@
         "fetching_statistic_please_wait": "Bitte warten, Statistiken werden abgerufen",
         "start_all": "alle Aufgaben starten",
         "configure_imapsync": "zu Einstellungen wechseln",
-        "something_wrong_cannot_list_informations": "Etwas ist schief gegangen, ferne Konto- und Informationen können nicht aufgelistet werden",
+        "something_wrong_cannot_list_informations": "Etwas ist schief gegangen, ferne Konten und Konto-Informationen können nicht aufgelistet werden",
         "select_your_cron": "Häufigkeit der Ausführung wählen",
         "none": "ohne Verschlüsselung",
         "enabled": "aktiviert",
@@ -127,7 +127,7 @@
         "required": "Erforderlich",
         "save": "speichern",
         "work_in_progress": "in Arbeit",
-        "cancel": "Cancel",
+        "cancel": "abbrechen",
         "processing": "Verarbeite..."
     },
     "status": {

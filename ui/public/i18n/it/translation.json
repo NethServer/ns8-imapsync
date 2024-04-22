@@ -1,10 +1,10 @@
 {
     "common": {
         "required": "Obbligatorio",
-        "processing": "Elaborazione in corso...",
+        "processing": "In elaborazione…",
         "work_in_progress": "In lavorazione",
         "save": "Salva",
-        "cancel": "Cancel"
+        "cancel": "Annulla"
     },
     "status": {
         "node": "Nodo",
