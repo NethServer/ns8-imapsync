@@ -22,7 +22,14 @@ fi
 action=${1}
 task_id=${2}
 
-source /etc/imapsync/${task_id}.env
+while IFS= read -r line; do
+  # Trim leading/trailing whitespace
+  line=$(echo "$line" | xargs)
+  # Ignore empty lines
+  [ -z "$line" ] && continue
+  # Export the variable
+  export "$line"
+done < /etc/imapsync/${task_id}.env
 
 
 if [[ "$action" == "start" ]]; then
