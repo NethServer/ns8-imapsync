@@ -26,7 +26,6 @@
         "save": "Salva",
         "title": "Impostazioni",
         "configure_instance": "Configura {instance}",
-        "test_field": "Campo di test",
         "mail_server_fqdn": "Server di posta",
         "configuring": "Configurazione",
         "instance_configuration": "Configura Imapsync",
