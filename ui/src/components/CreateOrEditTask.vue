@@ -30,7 +30,7 @@
         <NsComboBox
           v-if="!isEdit"
           :options="enabled_mailboxes"
-          v-model.trim="task.localuser"
+          v-model.trim="localuser"
           :autoFilter="true"
           :autoHighlight="true"
           :title="$t('tasks.local_user')"
@@ -49,14 +49,14 @@
           </template>
         </NsComboBox>
         <NsTextInput
-          v-model.trim="task.remoteusername"
+          v-model.trim="remoteusername"
           :label="$t('tasks.remoteusername')"
           ref="remoteusername"
           :invalid-message="$t(error.remoteusername)"
           :disabled="loading.createTask"
         />
         <NsTextInput
-          v-model.trim="task.remotepassword"
+          v-model.trim="remotepassword"
           type="password"
           :label="$t('tasks.remotepassword')"
           ref="remotepassword"
@@ -67,7 +67,7 @@
           :disabled="loading.createTask"
         />
         <NsTextInput
-          v-model.trim="task.remotehostname"
+          v-model.trim="remotehostname"
           :label="$t('tasks.remotehostname')"
           placeholder="imap.domain.com"
           ref="remotehostname"
@@ -75,7 +75,7 @@
           :disabled="loading.createTask"
         />
         <NsTextInput
-          v-model.trim="task.remoteport"
+          v-model.trim="remoteport"
           type="number"
           :label="$t('tasks.remoteport')"
           ref="remoteport"
@@ -85,8 +85,8 @@
         <cv-dropdown
           :light="true"
           class="max-dropdown-width"
-          :value="task.security"
-          v-model="task.security"
+          :value="security"
+          v-model="security"
           :up="false"
           :inline="false"
           :helper-text="$t('tasks.encryption_depends_remote_server')"
@@ -119,29 +119,29 @@
             :name="'radio-group-foldersynchronization'"
             :label="$t('tasks.syncronize_all')"
             value="all"
-            v-model="task.foldersynchronization"
+            v-model="foldersynchronization"
             :disabled="loading.createTask"
           />
           <cv-radio-button
             :name="'radio-group-foldersynchronization'"
             :label="$t('tasks.synchronize_only_INBOX')"
             value="inbox"
-            v-model="task.foldersynchronization"
+            v-model="foldersynchronization"
             :disabled="loading.createTask"
           />
           <cv-radio-button
             :name="'radio-group-foldersynchronization'"
             :label="$t('tasks.syncronize_with_exclusion')"
             value="exclusion"
-            v-model="task.foldersynchronization"
+            v-model="foldersynchronization"
             :disabled="loading.createTask"
           />
         </cv-radio-group>
-        <template v-if="task.foldersynchronization == 'exclusion'">
+        <template v-if="foldersynchronization == 'exclusion'">
           <cv-text-area
             class="mg-left"
             :label="$t('tasks.exclude_folder')"
-            v-model.trim="task.exclude"
+            v-model.trim="exclude"
             ref="exclude"
             :invalid-message="$t(error.exclude)"
             :placeholder="$t('tasks.write_one_exclusion_per_line')"
@@ -166,7 +166,7 @@
             :name="'radio-group-delete_local'"
             :label="$t('tasks.no_deletion')"
             value="no_delete"
-            v-model="task.delete"
+            v-model="delete_msg"
             :disabled="loading.createTask"
           />
 
@@ -174,7 +174,7 @@
             :name="'radio-group-delete_local'"
             :label="$t('tasks.delete_on_remote')"
             value="delete_remote"
-            v-model="task.delete"
+            v-model="delete_msg"
             :disabled="loading.createTask"
           />
           <!-- <cv-radio-button
@@ -185,7 +185,7 @@
           /> -->
         </cv-radio-group>
         <NsSlider
-          v-model="task.cron"
+          v-model="cron"
           :label="$t('tasks.select_your_cron')"
           min="1"
           max="60"
@@ -196,11 +196,11 @@
           showUnlimited
           :unlimitedLabel="$t('tasks.disabled')"
           :limitedLabel="$t('tasks.enabled')"
-          :isUnlimited="!task.cron_enabled"
+          :isUnlimited="!cron_enabled"
           :invalidMessage="$t(error.cron)"
           :disabled="loading.createTask"
           :unitLabel="$t('tasks.minutes')"
-          @unlimited="task.cron_enabled = !$event"
+          @unlimited="cron_enabled = !$event"
           class="mg-bottom-xlg"
         />
       </cv-form>
@@ -241,6 +241,17 @@ export default {
       loading: {
         createTask: false,
       },
+      localuser: "",
+      remoteusername: "",
+      remotepassword: "",
+      remotehostname: "",
+      remoteport: "",
+      security: "",
+      foldersynchronization: "all",
+      exclude: "",
+      delete_msg: "no_delete",
+      cron: "0",
+      cron_enabled: false,
       error: {
         enabled_mailboxe: "",
         createTask: "",
@@ -256,12 +267,49 @@ export default {
   computed: {
     ...mapState(["instanceName", "core", "appName"]),
   },
+  watch: {
+    isShown: function () {
+      if (this.isShown) {
+        this.clearErrors();
+        this.localuser = this.task.localuser;
+        this.remoteusername = this.task.remoteusername;
+        this.remotepassword = "";
+        this.remotehostname = this.task.remotehostname;
+        this.remoteport = this.task.remoteport;
+        this.security = this.task.security;
+        this.foldersynchronization = this.task.foldersynchronization;
+        this.exclude = this.task.exclude;
+        this.delete_msg = this.task.delete;
+        this.cron = this.task.cron;
+        this.cron_enabled = this.task.cron_enabled;
+      } else {
+        // hiding modal
+
+        if (this.isEditing) {
+          this.clearFields();
+        }
+      }
+    },
+  },
   methods: {
+    clearFields() {
+      this.localuser = "";
+      this.remoteusername = "";
+      this.remotepassword = "";
+      this.remotehostname = "";
+      this.remoteport = "";
+      this.security = "";
+      this.foldersynchronization = "all";
+      this.exclude = "";
+      this.delete_msg = "no_delete";
+      this.cron = "0";
+      this.cron_enabled = false;
+    },
     validateConfigureModule() {
       this.clearErrors(this);
 
       let isValidationOk = true;
-      if (!this.task.localuser) {
+      if (!this.localuser) {
         this.error.localuser = "common.required";
 
         if (isValidationOk) {
@@ -269,7 +317,7 @@ export default {
         }
         isValidationOk = false;
       }
-      if (!this.task.remoteusername) {
+      if (!this.remoteusername) {
         this.error.remoteusername = "common.required";
 
         if (isValidationOk) {
@@ -277,7 +325,7 @@ export default {
         }
         isValidationOk = false;
       }
-      if (!this.task.remotepassword && !this.isEdit) {
+      if (!this.remotepassword && !this.isEdit) {
         this.error.remotepassword = "common.required";
 
         if (isValidationOk) {
@@ -285,7 +333,7 @@ export default {
         }
         isValidationOk = false;
       }
-      if (!this.task.remotehostname) {
+      if (!this.remotehostname) {
         this.error.remotehostname = "common.required";
 
         if (isValidationOk) {
@@ -293,7 +341,7 @@ export default {
         }
         isValidationOk = false;
       }
-      if (!this.task.remoteport) {
+      if (!this.remoteport) {
         this.error.remoteport = "common.required";
 
         if (isValidationOk) {
@@ -302,8 +350,8 @@ export default {
         isValidationOk = false;
       }
       if (
-        this.task.foldersynchronization == "exclusion" &&
-        !this.task.exclude
+        this.foldersynchronization == "exclusion" &&
+        !this.exclude
       ) {
         this.error.exclude = "common.required";
 
@@ -352,32 +400,32 @@ export default {
         this.setCreateTaskCompleted
       );
       // modify cron value to be compatible with previous format ('',5m, 10m, 15m, 30m, 45m, 1h)
-      if (this.task.cron === "60" && this.task.cron_enabled) {
-        this.task.cron = "1h";
-      } else if (this.task.cron !== "0" && this.task.cron_enabled) {
-        this.task.cron = this.task.cron + "m";
-      } else if (!this.task.cron_enabled) {
-        this.task.cron = "";
+      if (this.cron === "60" && this.cron_enabled) {
+        this.cron = "1h";
+      } else if (this.cron !== "0" && this.cron_enabled) {
+        this.cron = this.cron + "m";
+      } else if (!this.cron_enabled) {
+        this.cron = "";
       }
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
           data: {
             task_id: this.task.task_id,
-            localuser: this.task.localuser,
-            remotehostname: this.task.remotehostname,
-            remotepassword: this.task.remotepassword,
-            remoteport: Number(this.task.remoteport),
-            remoteusername: this.task.remoteusername,
-            security: this.task.security,
-            delete_local: this.task.delete === "delete_local" ? true : false,
-            delete_remote: this.task.delete === "delete_remote" ? true : false,
-            exclude: this.task.exclude
+            localuser: this.localuser,
+            remotehostname: this.remotehostname,
+            remotepassword: this.remotepassword,
+            remoteport: Number(this.remoteport),
+            remoteusername: this.remoteusername,
+            security: this.security,
+            delete_local: this.delete_msg === "delete_local" ? true : false,
+            delete_remote: this.delete_msg === "delete_remote" ? true : false,
+            exclude: this.exclude
               .split("\n")
               .map((item) => item.trim())
               .join(","),
-            cron: this.task.cron,
-            foldersynchronization: this.task.foldersynchronization,
+            cron: this.cron,
+            foldersynchronization: this.foldersynchronization,
           },
           extra: {
             title: this.$t("action." + taskAction),
