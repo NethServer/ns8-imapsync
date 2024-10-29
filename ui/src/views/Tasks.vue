@@ -16,7 +16,7 @@
             >
               <template slot="trigger"></template>
               <template slot="content">
-                <div v-html="$t('tasks.title_tooltip')"></div>
+                <div>{{ $t("tasks.title_tooltip")}}</div>
               </template>
             </cv-interactive-tooltip>
           </h2>
