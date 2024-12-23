@@ -78,7 +78,8 @@
         "bad_user_credentials": "Verificar las credenciales del usuario, el servidor remoto se negó a autenticar",
         "exclude_folder": "Excluir carpetas",
         "local_user": "Usuario local",
-        "select_your_encryption": "Seleccionar cifrado"
+        "select_your_encryption": "Seleccionar cifrado",
+        "unchanged_password_placeholder": "Unchanged"
     },
     "settings": {
         "mail_server_fqdn": "Servidor de correo",
