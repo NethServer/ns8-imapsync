@@ -150,6 +150,7 @@
         "bad_user_credentials": "Verify the user credentials, the remote server refused to authenticate",
         "exclude_folder": "Folders exclusion",
         "local_user": "Utente locale",
-        "select_your_encryption": "Select encryption"
+        "select_your_encryption": "Select encryption",
+        "unchanged_password_placeholder": "Unchanged"
     }
 }
