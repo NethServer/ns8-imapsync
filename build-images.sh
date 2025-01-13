@@ -14,7 +14,7 @@ repobase="${REPOBASE:-ghcr.io/nethserver}"
 
 #Create webtop-webapp container
 reponame="imapsync-binary"
-container=$(buildah from docker.io/library/alpine:3.20.2)
+container=$(buildah from docker.io/library/alpine:3.21.2)
 buildah run "${container}" /bin/sh <<'EOF'
 set -e
 apk add --no-cache imapsync cronie

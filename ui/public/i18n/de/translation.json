@@ -91,7 +91,8 @@
         "bad_user_credentials": "Zugangsdaten prüfen, der Server hat die Verbindung abgelehnt",
         "exclude_folder": "Ordner-Ausnahmen",
         "local_user": "lokaler Benutzer",
-        "select_your_encryption": "Verschlüsselung auswählen"
+        "select_your_encryption": "Verschlüsselung auswählen",
+        "unchanged_password_placeholder": "Unchanged"
     },
     "error": {
         "403": "Vorgang nicht autorisiert",
