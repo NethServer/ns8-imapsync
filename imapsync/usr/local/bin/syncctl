@@ -31,7 +31,37 @@ while IFS= read -r line; do
   export "${line?}"
 done < "/etc/imapsync/${task_id}.env"
 
+get_file_age_in_days() {
+    local filename="$1"
+    # Get last access time in Unix timestamp
+    local last_access=$(stat -c %Y "$filename")
+    # Get current Unix timestamp
+    local today=$(date +%s)
+    # Calculate days difference and round up to next integer
+    local difference_days=$(( (today - last_access + 86399) / 86400 ))
+    echo "$difference_days"
+}
+
 if [[ "${action}" == "start" ]]; then
+
+    # check if the timestamp file exists
+    if [[ ! -f "/etc/imapsync/${task_id}.timestamp" ]]; then
+        FIRSTRUN="true"
+    else
+        FIRSTRUN="false"
+    fi
+    # retrieve unixtimestamp
+    timestamp="$(date +%s)"
+    touch -m -d "@${timestamp}" /etc/imapsync/${task_id}.timestamp
+    days=$(get_file_age_in_days /etc/imapsync/${task_id}.timestamp)
+    # determine the maxage we want to use
+    if [[ "${FIRSTRUN}" == "true" ]]; then
+        MAXAGE=""
+    elif [[ "${days}" -eq 0 && "${FIRSTRUN}" == "false" ]]; then
+        MAXAGE="--maxage 1"
+    elif [[ "${days}" -gt 0 && "${FIRSTRUN}" == "false" ]]; then
+        MAXAGE="--maxage ${days}"
+    fi
 
     if [[ "${FOLDERSYNCHRONIZATION}" == "exclusion" ]];then
         # source breaks with `|`
@@ -43,7 +73,7 @@ if [[ "${action}" == "start" ]]; then
     flock -x -n "/etc/imapsync/${task_id}.lock" \
         /usr/bin/imapsync --pidfile "/etc/imapsync/${task_id}.pid" --nolog \
         --noauthmd5 --noreleasecheck --allowsizemismatch \
-        --skipsize --nofoldersizes "${DELETE_LOCAL}" "${DELETEFOLDERS}" "${DELETE_REMOTE}" "${EXPUNGE_REMOTE}" \
+        --skipsize --nofoldersizes ${MAXAGE} "${DELETE_LOCAL}" "${DELETEFOLDERS}" "${DELETE_REMOTE}" "${EXPUNGE_REMOTE}" \
         --fastio1 --fastio2 --buffersize 8192000 \
         --host1 "${REMOTEHOSTNAME}"  --user1 "${REMOTEUSERNAME}"  \
         --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
@@ -56,6 +86,8 @@ elif [[ "${action}" == "stop" ]];then
         kill  "$(cat "/etc/imapsync/${task_id}.pid")"
         # it can take a long time to imapsync to fully stop
         rm -f "/etc/imapsync/${task_id}.lock"
+        # the task has been manually stopped, we cannot state that the task has been finished
+        rm -f "/etc/imapsync/${task_id}.timestamp"
     else
         echo "Not Running"
     fi
