@@ -58,6 +58,10 @@ if [[ "${action}" == "start" ]]; then
     if [[ "${REMOTEHOSTNAME}" == 'imap.gmail.com' ]]; then
         gmail='--gmail1'
     fi
+
+    # retrieve unixtimestamp
+    timestamp="$(date +%s)"
+
     flock -x -n "/etc/imapsync/${task_id}.lock" \
         /usr/bin/imapsync --pidfile "/etc/imapsync/${task_id}.pid" --nolog \
         --noauthmd5 --noreleasecheck --allowsizemismatch \
@@ -68,10 +72,9 @@ if [[ "${action}" == "start" ]]; then
         --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
         "${FOLDER_INBOX}" --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
-        # set the timestamp file to the current time
-        # retrieve unixtimestamp
-        timestamp="$(date +%s)"
-        touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"
+
+    # set the timestamp file to the current time
+    touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"
 
 elif [[ "${action}" == "stop" ]];then
     if [[ -f "/etc/imapsync/${task_id}.pid" ]]; then
