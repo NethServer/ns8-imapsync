@@ -32,7 +32,9 @@ while IFS= read -r line; do
 done < "/etc/imapsync/${task_id}.env"
 
 get_file_age_in_days() {
-    local filename="/etc/imapsync/${task_id}.timestamp"
+    local filename
+    filename="/etc/imapsync/${task_id}.timestamp"
+    local maxage
     if [[ ! -f "$filename" ]]; then
         maxage=""
     else
@@ -49,8 +51,7 @@ get_file_age_in_days() {
 }
 
 if [[ "${action}" == "start" ]]; then
-
-    get_file_age_in_days
+    maxage="$(get_file_age_in_days)"
     if [[ "${FOLDERSYNCHRONIZATION}" == "exclusion" ]];then
         # source breaks with `|`
         exclude_regex=$(echo "${EXCLUDE}" | tr ',' '|')
