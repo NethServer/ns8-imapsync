@@ -34,7 +34,6 @@ done < "/etc/imapsync/${task_id}.env"
 get_file_age_in_days() {
     local filename="/etc/imapsync/${task_id}.timestamp"
     if [[ ! -f "$filename" ]]; then
-        local maxage
         maxage=""
     else
         # Get last access time in Unix timestamp
@@ -46,13 +45,12 @@ get_file_age_in_days() {
         # Calculate days difference and round up to next integer
         maxage=$(( (today - last_access + 86399) / 86400 ))
     fi
-    echo ${maxage:+--maxage ${maxage}}
+    echo $maxage
 }
 
 if [[ "${action}" == "start" ]]; then
 
-    MAXAGE=$(get_file_age_in_days)
-
+    get_file_age_in_days
     if [[ "${FOLDERSYNCHRONIZATION}" == "exclusion" ]];then
         # source breaks with `|`
         exclude_regex=$(echo "${EXCLUDE}" | tr ',' '|')
@@ -63,7 +61,7 @@ if [[ "${action}" == "start" ]]; then
     flock -x -n "/etc/imapsync/${task_id}.lock" \
         /usr/bin/imapsync --pidfile "/etc/imapsync/${task_id}.pid" --nolog \
         --noauthmd5 --noreleasecheck --allowsizemismatch \
-        --skipsize --nofoldersizes "${MAXAGE}" "${DELETE_LOCAL}" "${DELETEFOLDERS}" "${DELETE_REMOTE}" "${EXPUNGE_REMOTE}" \
+        --skipsize --nofoldersizes "${maxage:+--maxage=${maxage}}" "${DELETE_LOCAL}" "${DELETEFOLDERS}" "${DELETE_REMOTE}" "${EXPUNGE_REMOTE}" \
         --fastio1 --fastio2 --buffersize 8192000 \
         --host1 "${REMOTEHOSTNAME}"  --user1 "${REMOTEUSERNAME}"  \
         --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
