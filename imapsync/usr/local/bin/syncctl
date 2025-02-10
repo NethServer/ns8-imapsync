@@ -31,8 +31,27 @@ while IFS= read -r line; do
   export "${line?}"
 done < "/etc/imapsync/${task_id}.env"
 
-if [[ "${action}" == "start" ]]; then
+get_file_age_in_days() {
+    local filename
+    filename="/etc/imapsync/${task_id}.timestamp"
+    local maxage
+    if [[ ! -f "$filename" ]]; then
+        maxage=""
+    else
+        # Get last access time in Unix timestamp
+        local last_access
+        last_access=$(stat -c %Y "$filename")
+        # Get current Unix timestamp
+        local today
+        today=$(date +%s)
+        # Calculate days difference and round up to next integer
+        maxage=$(( (today - last_access + 86399) / 86400 ))
+    fi
+    echo $maxage
+}
 
+if [[ "${action}" == "start" ]]; then
+    maxage="$(get_file_age_in_days)"
     if [[ "${FOLDERSYNCHRONIZATION}" == "exclusion" ]];then
         # source breaks with `|`
         exclude_regex=$(echo "${EXCLUDE}" | tr ',' '|')
@@ -40,22 +59,31 @@ if [[ "${action}" == "start" ]]; then
     if [[ "${REMOTEHOSTNAME}" == 'imap.gmail.com' ]]; then
         gmail='--gmail1'
     fi
+
+    # retrieve unixtimestamp
+    timestamp="$(date +%s)"
+
     flock -x -n "/etc/imapsync/${task_id}.lock" \
         /usr/bin/imapsync --pidfile "/etc/imapsync/${task_id}.pid" --nolog \
         --noauthmd5 --noreleasecheck --allowsizemismatch \
-        --skipsize --nofoldersizes "${DELETE_LOCAL}" "${DELETEFOLDERS}" "${DELETE_REMOTE}" "${EXPUNGE_REMOTE}" \
+        --skipsize --nofoldersizes "${maxage:+--maxage=${maxage}}" "${DELETE_LOCAL}" "${DELETEFOLDERS}" "${DELETE_REMOTE}" "${EXPUNGE_REMOTE}" \
         --fastio1 --fastio2 --buffersize 8192000 \
         --host1 "${REMOTEHOSTNAME}"  --user1 "${REMOTEUSERNAME}"  \
         --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
         --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
-        ${FOLDER_INBOX} --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
+        "${FOLDER_INBOX}" --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
+
+    # set the timestamp file to the current time
+    touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"
 
 elif [[ "${action}" == "stop" ]];then
     if [[ -f "/etc/imapsync/${task_id}.pid" ]]; then
         kill  "$(cat "/etc/imapsync/${task_id}.pid")"
         # it can take a long time to imapsync to fully stop
         rm -f "/etc/imapsync/${task_id}.lock"
+        # the task has been manually stopped, we cannot state that the task has been finished
+        rm -f "/etc/imapsync/${task_id}.timestamp"
     else
         echo "Not Running"
     fi
@@ -90,5 +118,5 @@ elif [[ "${action}" == "list-informations" ]]; then
     --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
     --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
     --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
-    ${FOLDER_INBOX} --exclude '^Public$|^Shared$'"${exclude_regex}" --justfoldersizes --timeout1 10
+    "${FOLDER_INBOX}" --exclude '^Public$|^Shared$'"${exclude_regex}" --justfoldersizes --timeout1 10
 fi
