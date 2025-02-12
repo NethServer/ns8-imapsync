@@ -72,7 +72,8 @@ if [[ "${action}" == "start" ]]; then
         --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
         --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
-        "${FOLDER_INBOX}" --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
+        ${FOLDER_INBOX} --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
+        # FOLDER_INBOX must not be enquoted NethServer/dev#7296
 
     # set the timestamp file to the current time
     touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"
@@ -118,5 +119,6 @@ elif [[ "${action}" == "list-informations" ]]; then
     --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
     --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
     --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
-    "${FOLDER_INBOX}" --exclude '^Public$|^Shared$'"${exclude_regex}" --justfoldersizes --timeout1 10
+    ${FOLDER_INBOX} --exclude '^Public$|^Shared$'"${exclude_regex}" --justfoldersizes --timeout1 10
+    # FOLDER_INBOX must not be enquoted NethServer/dev#7296
 fi
