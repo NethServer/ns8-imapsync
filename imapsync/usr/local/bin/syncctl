@@ -102,7 +102,7 @@ elif [[ "${action}" == "stop" ]];then
         # it can take a long time to imapsync to fully stop
         rm -f "/etc/imapsync/${task_id}.lock"
         # the task has been manually stopped, we cannot state that the task has been finished
-        rm -f "/etc/imapsync/${task_id}*.timestamp"
+        rm -f  /etc/imapsync/"${task_id}"*.timestamp # ash does not support globbing with quotes
     else
         echo "Not Running"
     fi
