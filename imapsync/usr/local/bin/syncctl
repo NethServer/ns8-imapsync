@@ -33,7 +33,13 @@ done < "/etc/imapsync/${task_id}.env"
 
 get_file_age_in_days() {
     local filename
-    filename="/etc/imapsync/${task_id}.timestamp"
+    if [[ ${FOLDERSYNCHRONIZATION} == 'all' ]]; then 
+        filename="/etc/imapsync/${task_id}_all.timestamp"
+    elif [[ ${FOLDERSYNCHRONIZATION} == 'inbox' ]]; then 
+        filename="/etc/imapsync/${task_id}_inbox.timestamp"
+    elif [[ ${FOLDERSYNCHRONIZATION} == 'exclusion' ]]; then 
+        filename="/etc/imapsync/${task_id}_exclusion.timestamp"
+    fi
     local maxage
     if [[ ! -f "$filename" ]]; then
         maxage=""
@@ -76,7 +82,19 @@ if [[ "${action}" == "start" ]]; then
         # FOLDER_INBOX must not be enquoted NethServer/dev#7296
 
     # set the timestamp file to the current time
-    touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"
+    if [[ ${FOLDERSYNCHRONIZATION} == 'all' ]]; then
+        touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}_all.timestamp"
+        # remove other unused timestamp (inbox and exclusion)
+        rm -f "/etc/imapsync/${task_id}_inbox.timestamp" "/etc/imapsync/${task_id}_exclusion.timestamp"
+    elif [[ ${FOLDERSYNCHRONIZATION} == 'inbox' ]]; then
+        touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}_inbox.timestamp"
+         # remove other unused timestamp (all and exclusion)
+         rm -f "/etc/imapsync/${task_id}_all.timestamp" "/etc/imapsync/${task_id}_exclusion.timestamp"
+    elif [[ ${FOLDERSYNCHRONIZATION} == 'exclusion' ]]; then
+        touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}_exclusion.timestamp"
+        # remove other unused timestamp (all and inbox)
+        rm -f "/etc/imapsync/${task_id}_all.timestamp" "/etc/imapsync/${task_id}_inbox.timestamp"
+    fi  
 
 elif [[ "${action}" == "stop" ]];then
     if [[ -f "/etc/imapsync/${task_id}.pid" ]]; then
@@ -84,7 +102,7 @@ elif [[ "${action}" == "stop" ]];then
         # it can take a long time to imapsync to fully stop
         rm -f "/etc/imapsync/${task_id}.lock"
         # the task has been manually stopped, we cannot state that the task has been finished
-        rm -f "/etc/imapsync/${task_id}.timestamp"
+        rm -f "/etc/imapsync/${task_id}*.timestamp"
     else
         echo "Not Running"
     fi
