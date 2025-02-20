@@ -33,15 +33,11 @@ done < "/etc/imapsync/${task_id}.env"
 
 get_file_age_in_days() {
     local filename
-    if [[ ${FOLDERSYNCHRONIZATION} == 'all' ]]; then 
-        filename="/etc/imapsync/${task_id}_all.timestamp"
-    elif [[ ${FOLDERSYNCHRONIZATION} == 'inbox' ]]; then 
-        filename="/etc/imapsync/${task_id}_inbox.timestamp"
-    elif [[ ${FOLDERSYNCHRONIZATION} == 'exclusion' ]]; then 
-        filename="/etc/imapsync/${task_id}_exclusion.timestamp"
-    fi
+    filename="/etc/imapsync/${task_id}.timestamp"
+    prev_foldersync="$(cat ${filename} || :)"
+
     local maxage
-    if [[ ! -f "$filename" ]]; then
+    if [[ ! -f "$filename" ]] || [[ "${FOLDERSYNCHRONIZATION}" != "${prev_foldersync}" ]]; then
         maxage=""
     else
         # Get last access time in Unix timestamp
@@ -66,9 +62,6 @@ if [[ "${action}" == "start" ]]; then
         gmail='--gmail1'
     fi
 
-    # retrieve unixtimestamp
-    timestamp="$(date +%s)"
-
     flock -x -n "/etc/imapsync/${task_id}.lock" \
         /usr/bin/imapsync --pidfile "/etc/imapsync/${task_id}.pid" --nolog \
         --noauthmd5 --noreleasecheck --allowsizemismatch \
@@ -82,19 +75,7 @@ if [[ "${action}" == "start" ]]; then
         # FOLDER_INBOX must not be enquoted NethServer/dev#7296
 
     # set the timestamp file to the current time
-    if [[ ${FOLDERSYNCHRONIZATION} == 'all' ]]; then
-        touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}_all.timestamp"
-        # remove other unused timestamp (inbox and exclusion)
-        rm -f "/etc/imapsync/${task_id}_inbox.timestamp" "/etc/imapsync/${task_id}_exclusion.timestamp"
-    elif [[ ${FOLDERSYNCHRONIZATION} == 'inbox' ]]; then
-        touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}_inbox.timestamp"
-         # remove other unused timestamp (all and exclusion)
-         rm -f "/etc/imapsync/${task_id}_all.timestamp" "/etc/imapsync/${task_id}_exclusion.timestamp"
-    elif [[ ${FOLDERSYNCHRONIZATION} == 'exclusion' ]]; then
-        touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}_exclusion.timestamp"
-        # remove other unused timestamp (all and inbox)
-        rm -f "/etc/imapsync/${task_id}_all.timestamp" "/etc/imapsync/${task_id}_inbox.timestamp"
-    fi  
+    echo ${FOLDERSYNCHRONIZATION} > "/etc/imapsync/${task_id}.timestamp"
 
 elif [[ "${action}" == "stop" ]];then
     if [[ -f "/etc/imapsync/${task_id}.pid" ]]; then
@@ -102,7 +83,7 @@ elif [[ "${action}" == "stop" ]];then
         # it can take a long time to imapsync to fully stop
         rm -f "/etc/imapsync/${task_id}.lock"
         # the task has been manually stopped, we cannot state that the task has been finished
-        rm -f  /etc/imapsync/"${task_id}"*.timestamp # ash does not support globbing with quotes
+        rm -f "/etc/imapsync/${task_id}.timestamp"
     else
         echo "Not Running"
     fi
