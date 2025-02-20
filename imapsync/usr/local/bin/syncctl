@@ -34,8 +34,10 @@ done < "/etc/imapsync/${task_id}.env"
 get_file_age_in_days() {
     local filename
     filename="/etc/imapsync/${task_id}.timestamp"
+    prev_foldersync="$(cat ${filename} || :)"
+
     local maxage
-    if [[ ! -f "$filename" ]]; then
+    if [[ ! -f "$filename" ]] || [[ "${FOLDERSYNCHRONIZATION}" != "${prev_foldersync}" ]]; then
         maxage=""
     else
         # Get last access time in Unix timestamp
@@ -59,7 +61,6 @@ if [[ "${action}" == "start" ]]; then
     if [[ "${REMOTEHOSTNAME}" == 'imap.gmail.com' ]]; then
         gmail='--gmail1'
     fi
-
     # retrieve unixtimestamp
     timestamp="$(date +%s)"
 
@@ -76,8 +77,8 @@ if [[ "${action}" == "start" ]]; then
         # FOLDER_INBOX must not be enquoted NethServer/dev#7296
 
     # set the timestamp file to the current time
+    echo ${FOLDERSYNCHRONIZATION} > "/etc/imapsync/${task_id}.timestamp"
     touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"
-
 elif [[ "${action}" == "stop" ]];then
     if [[ -f "/etc/imapsync/${task_id}.pid" ]]; then
         kill  "$(cat "/etc/imapsync/${task_id}.pid")"
