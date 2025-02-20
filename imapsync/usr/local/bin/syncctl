@@ -61,6 +61,8 @@ if [[ "${action}" == "start" ]]; then
     if [[ "${REMOTEHOSTNAME}" == 'imap.gmail.com' ]]; then
         gmail='--gmail1'
     fi
+    # retrieve unixtimestamp
+    timestamp="$(date +%s)"
 
     flock -x -n "/etc/imapsync/${task_id}.lock" \
         /usr/bin/imapsync --pidfile "/etc/imapsync/${task_id}.pid" --nolog \
@@ -76,7 +78,7 @@ if [[ "${action}" == "start" ]]; then
 
     # set the timestamp file to the current time
     echo ${FOLDERSYNCHRONIZATION} > "/etc/imapsync/${task_id}.timestamp"
-
+    touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"
 elif [[ "${action}" == "stop" ]];then
     if [[ -f "/etc/imapsync/${task_id}.pid" ]]; then
         kill  "$(cat "/etc/imapsync/${task_id}.pid")"
