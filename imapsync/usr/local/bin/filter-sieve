@@ -1,0 +1,61 @@
+#!/usr/bin/perl
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+use strict;
+use warnings;
+use IO::Socket::SSL;
+use Mail::IMAPClient;
+
+# Check for mandatory task_id argument
+if (@ARGV < 1) {
+    die "Usage: $0 <timestamp_file>\n";
+}
+my $timestamp_file = $ARGV[0];
+# Get file modification time
+open my $ft, '<', $timestamp_file or die "Could not read $timestamp_file: $!";
+my $mtime = (stat($ft))[9] or die "Could not get file modification time: $!";
+close($ft);
+
+my $server = $ENV{'MAIL_HOST'}
+    or die "MAIL_HOST environment variable not set.";  # 'imap.example.com'
+my $username = $ENV{'LOCALUSER'} . '*vmail'
+    or die "LOCALUSER environment variable not set.";  # 'user@example.com'
+my $password_file = "/etc/imapsync/vmail.pwd";
+my $use_tls = ($ENV{'SECURITY'} // '') =~ /^--ssl/i ? 1 : 0;
+my $use_starttls = ($ENV{'SECURITY'} // '') =~ /^--tls/i ? 1 : 0;
+my $imap_debug = $ENV{'IMAP_DEBUG'} // 0;
+
+# Read password from file
+my $password = do { local $/; open my $fp, '<', $password_file ; <$fp> }
+    or die "Could not read password from file: $password_file\n";
+chomp($password);
+
+# Establish IMAP connection
+my $imap = Mail::IMAPClient->new(
+    Server   => $server,
+    User     => $username,
+    Password => $password,
+    Debug => $imap_debug,
+) or die "Could not connect to IMAP server: $@";
+
+# Check if the IMAP server has non-standard capability
+if (!$imap->has_capability("FILTER=SIEVE")) {
+    die "Could not find capability FILTER=SIEVE";
+}
+
+# Select INBOX
+$imap->select('INBOX') or die "Cannot select mailbox INBOX: " . $imap->LastError;
+
+# Execute FILTER SIEVE DELIVERY with searching criteria
+my $since_date = $imap->Rfc2060_date($mtime);
+my $result = $imap->_imap_command(qq(FILTER SIEVE DELIVERY SINCE $since_date));
+if ( ! $result) {
+    print "Error executing FILTER SIEVE: " . $imap->LastError . "\n";
+}
+
+# Logout
+$imap->logout();
