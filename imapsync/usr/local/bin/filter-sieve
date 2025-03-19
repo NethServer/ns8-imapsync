@@ -54,7 +54,7 @@ $imap->select('INBOX') or die "Cannot select mailbox INBOX: " . $imap->LastError
 my $since_date = $imap->Rfc2060_date($mtime);
 my $result = $imap->_imap_command(qq(FILTER SIEVE DELIVERY SINCE $since_date));
 if ( ! $result) {
-    print "Error executing FILTER SIEVE: " . $imap->LastError . "\n";
+    warn "FILTER SIEVE: " . $imap->LastError . "\n";
 }
 
 # Logout
