@@ -76,6 +76,12 @@ if [[ "${action}" == "start" ]]; then
         ${FOLDER_INBOX} --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
         # FOLDER_INBOX must not be enquoted NethServer/dev#7296
 
+    if [[ "${FOLDERSYNCHRONIZATION}" == "inbox" ]]; then
+        # Force the evaluation of local user's SIEVE filter (if present).
+        # Ignore errors from filter-sieve command, just log them.
+        filter-sieve "/etc/imapsync/${task_id}.timestamp" || :
+    fi
+
     # set the timestamp file to the current time
     echo ${FOLDERSYNCHRONIZATION} > "/etc/imapsync/${task_id}.timestamp"
     touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"

@@ -9,9 +9,6 @@
 #
 [Unit]
 Description=imapsync server
-#
-# Start the session of rootless modules after Redis
-#
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
