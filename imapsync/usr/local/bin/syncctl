@@ -79,7 +79,7 @@ if [[ "${action}" == "start" ]]; then
     if [[ "${FOLDERSYNCHRONIZATION}" == "inbox" ]]; then
         # Force the evaluation of local user's SIEVE filter (if present).
         # Ignore errors from filter-sieve command, just log them.
-        filter-sieve "/etc/imapsync/${task_id}.timestamp" || :
+        filter-sieve "/etc/imapsync/${task_id}.timestamp" > /proc/1/fd/1 2>&1 || :
     fi
 
     # set the timestamp file to the current time
