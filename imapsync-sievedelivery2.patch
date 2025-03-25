@@ -1,0 +1,64 @@
+commit 1e9719ded4ba267d4dd1c66556b44b6af38bbb93
+Author: Davide Principi <davide.principi@nethesis.it>
+Date:   Wed Mar 26 09:40:39 2025 +0100
+
+    feat(sievedelivery2): run FILTER SIEVE
+    
+    At the end of synchronization run FILTER SIEVE DELIVERY on transferred
+    messages. The FILTER=SIEVE capability is assumed to be present in host2.
+
+diff --git a/imapsync b/imapsync
+index a7f8f11..b2a9915 100755
+--- a/imapsync
++++ b/imapsync
+@@ -581,7 +581,10 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
+  --idatefromheader   : Sets the internal dates on host2 as the same as the
+                        ones in "Date:" headers.
+ 
++=head2 OPTIONS/Sieve filters
+ 
++ --sievedelivery2    : Run FILTER SIEVE DELIVER (requires the FILTER capability
++                       on host2) for each message copied to host2.
+ 
+ =head2 OPTIONS/message selection
+ 
+@@ -3005,6 +3008,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
+ 	# Getting host2 headers, metada and delete2 stuff can be so long that host1 might be disconnected here
+         if ( ! reconnect_12_if_needed( $sync ) ) { last FOLDER ; }
+ 
++        my @h2_msgs_for_sieve ; # UIDs for FILTER SIEVE RUN
+         my @h1_msgs_to_delete ;
+         MESS: foreach my $m_id (@h1_hash_keys_sorted_by_uid) {
+                 abortifneeded( $sync ) ;
+@@ -3050,6 +3054,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
+                                 # same thing below on all total_bytes_max_reached!
+                                 last FOLDER ;
+                         }
++                        push @h2_msgs_for_sieve, $h2_msg ; # Store UID for Sieve processing
+                         next MESS;
+                 }
+                 else
+@@ -3152,7 +3157,14 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
+                 myprint( "Host1: Expunging folder $h1_fold $sync->{ dry_message }\n"  ) ;
+                 if ( ! $sync->{dry} ) { $sync->{ imap1 }->expunge(  ) } ;
+         }
+-        if ( $sync->{ expunge2 } ){
++        if ( $sync->{ sievedelivery2 } and @h2_msgs_for_sieve ) {
++                my $filter_sieve_cmd = "FILTER SIEVE DELIVERY UID " . $sync->{imap2}->Range(\@h2_msgs_for_sieve) ;
++                myprint( "Host2: Running $filter_sieve_cmd with EXPUNGE on $h2_fold $sync->{dry_message}\n"  ) ;
++                if ( ! $sync->{dry} ) {
++                        $sync->{imap2}->_imap_command($filter_sieve_cmd) ;
++                        $sync->{imap2}->expunge(  ) ;
++                }
++        } elsif ( $sync->{ expunge2 } ){
+                 myprint( "Host2: Expunging folder $h2_fold $sync->{ dry_message }\n"  ) ;
+                 if ( ! $sync->{dry} ) { $sync->{ imap2 }->expunge(  ) } ;
+         }
+@@ -22707,6 +22719,7 @@ sub get_options_cmd
+         'delete2folders!'     => \$mysync->{ delete2folders },
+         'delete2foldersonly=s'   => \$mysync->{ delete2foldersonly },
+         'delete2foldersbutnot=s' => \$mysync->{ delete2foldersbutnot },
++        'sievedelivery2!'    => \$mysync->{ sievedelivery2 },
+         'syncinternaldates!' => \$syncinternaldates,
+         'idatefromheader!'   => \$idatefromheader,
+         'syncacls!'          => \$mysync->{ syncacls },
