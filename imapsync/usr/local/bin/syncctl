@@ -11,7 +11,7 @@
 # stop : stop the sync for the task_id
 # validation: validate the settings by trying to just login to imapsync and quit
 
-# shellcheck shell=dash disable=SC3010
+# shellcheck shell=dash
 
 set -e
 
@@ -75,12 +75,6 @@ if [[ "${action}" == "start" ]]; then
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
         ${FOLDER_INBOX} --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
         # FOLDER_INBOX must not be enquoted NethServer/dev#7296
-
-    if [[ "${FOLDERSYNCHRONIZATION}" == "inbox" ]] && [[ -n "${DELETE_REMOTE}" ]]; then
-        # Force the evaluation of local user's SIEVE filter (if present).
-        # Ignore errors from filter-sieve command, just log them.
-        filter-sieve "/etc/imapsync/${task_id}.timestamp" > /proc/1/fd/1 2>&1 || :
-    fi
 
     # set the timestamp file to the current time
     echo ${FOLDERSYNCHRONIZATION} > "/etc/imapsync/${task_id}.timestamp"
