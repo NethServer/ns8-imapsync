@@ -17,9 +17,10 @@ reponame="imapsync-binary"
 container=$(buildah from docker.io/library/alpine:3.21.3)
 buildah run "${container}" /bin/sh <<'EOF'
 set -e
-apk add --no-cache imapsync cronie
+apk add --no-cache imapsync cronie patch
 EOF
 buildah add "${container}" imapsync/ /
+buildah run --workingdir=/usr/bin/ "${container}" patch -p1 < imapsync-sievedelivery2.patch
 # Commit the image
 buildah commit --rm "${container}" "${repobase}/${reponame}"
 

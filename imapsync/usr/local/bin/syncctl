@@ -73,14 +73,9 @@ if [[ "${action}" == "start" ]]; then
         --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
         --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
-        ${FOLDER_INBOX} --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
+        ${FOLDER_INBOX} ${FOLDER_INBOX:+--sievedelivery2} \
+        --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
         # FOLDER_INBOX must not be enquoted NethServer/dev#7296
-
-    if [[ "${FOLDERSYNCHRONIZATION}" == "inbox" ]] && [[ -n "${DELETE_REMOTE}" ]]; then
-        # Force the evaluation of local user's SIEVE filter (if present).
-        # Ignore errors from filter-sieve command, just log them.
-        filter-sieve "/etc/imapsync/${task_id}.timestamp" > /proc/1/fd/1 2>&1 || :
-    fi
 
     # set the timestamp file to the current time
     echo ${FOLDERSYNCHRONIZATION} > "/etc/imapsync/${task_id}.timestamp"
