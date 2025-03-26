@@ -34,6 +34,7 @@ else:
 delete_local = data.get("delete_local",False)
 # delete on remote once migrated
 delete_remote = data.get("delete_remote",False)
+delete_remote_older = data.get("delete_remote_older", 0)
 if delete_local:
     delete_local = "--delete2"
     delete_folder = "--delete2foders"
@@ -42,7 +43,10 @@ else:
     delete_folder = ""
 
 if delete_remote:
-    delete_remote = "--delete1"
+    if delete_remote_older > 0:
+        delete_remote = f"--delete1older={delete_remote_older}"
+    else:
+        delete_remote = "--delete1"
     expunge_remote = "--noexpungeaftereach"
 else:
     delete_remote = ""

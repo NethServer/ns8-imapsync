@@ -61,6 +61,14 @@ if [[ "${action}" == "start" ]]; then
     if [[ "${REMOTEHOSTNAME}" == 'imap.gmail.com' ]]; then
         gmail='--gmail1'
     fi
+    if [[ -n "${FOLDER_INBOX}" ]] && [[ "${DELETE_REMOTE}" != "--delete1" ]]; then
+        # Prevent repeated transfer of the same message because the user
+        # or their Sieve filter moved/removed a message from INBOX.
+        # [ASSUMPTION] Using the IMAP \Recent flag assumes that the remote
+        # account is not accessed by other clients.
+        search1recent=1
+        maxage=
+    fi
     # retrieve unixtimestamp
     timestamp="$(date +%s)"
 
@@ -74,6 +82,7 @@ if [[ "${action}" == "start" ]]; then
         --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
         ${FOLDER_INBOX} ${FOLDER_INBOX:+--sievedelivery2} \
+        ${search1recent:+--search1=NEW --nochecknoabletosearch --nocheckfoldersexist --nocheckselectable} \
         --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
         # FOLDER_INBOX must not be enquoted NethServer/dev#7296
 

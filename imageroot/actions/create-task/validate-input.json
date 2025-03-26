@@ -113,6 +113,10 @@
             "title": "Delete Email on remote",
             "description": "delete Email on remote server after sync"
         },
+        "delete_remote_older": {
+            "type": "integer",
+            "description": "Number of days the messages are retained on the remote server"
+        },
         "exclude": {
             "title": "exclude",
             "type": "string",
