@@ -52,12 +52,14 @@
           v-model.trim="remoteUsername"
           :label="$t('tasks.remoteusername')"
           ref="remoteusername"
+          autocomplete="off"
           :invalid-message="$t(error.remoteusername)"
           :disabled="loading.createTask"
         />
         <NsTextInput
           v-model.trim="remotePassword"
           type="password"
+          autocomplete="new-password"
           :label="$t('tasks.remotepassword')"
           ref="remotepassword"
           :invalid-message="$t(error.remotepassword)"
