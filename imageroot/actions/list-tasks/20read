@@ -84,7 +84,8 @@ else:
                 data["delete_remote_older"] = 0
         elif "delete_remote" in data and data["delete_remote"] == "":
             data["delete_remote"] = False
-    
+            data["delete_remote_older"] = 0
+
         # remote password UI must never knows it
         data['remotepassword']=""
         #test if service is running 
