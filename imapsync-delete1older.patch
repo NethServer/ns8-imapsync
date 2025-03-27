@@ -1,0 +1,37 @@
+commit 35e64cd02c0ba1902499e9d003f3a2f21fad1702
+Author: Davide Principi <davide.principi@nethesis.it>
+Date:   Wed Mar 26 18:39:27 2025 +0100
+
+    feat(delete1older): remote server retention (days)
+    
+    Add the option --delete1older=N to expunge remote messages older than N days.
+    This additional task is indipendent from --delete1 and --expunge1 flags.
+
+diff --git a/imapsync b/imapsync
+index 51cbfb2..8a47a34 100755
+--- a/imapsync
++++ b/imapsync
+@@ -3153,6 +3153,15 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
+                 last FOLDER if total_bytes_max_reached( $sync ) ;
+         }
+ 
++        if ( $sync->{ delete1older } ){
++                my $cutoff_ts = time() - (86400 * $sync->{ delete1older });
++                my $cutoff_date = $sync->{ imap1 }->Rfc2060_date($cutoff_ts);
++                my @h1_msgs_delete_older = select_msgs( $sync, $sync->{ imap1 }, undef, "BEFORE " . $cutoff_date, $sync->{abletosearch1}, $h1_fold ) ;
++                if (@h1_msgs_delete_older) {
++                        myprint( "Host1: Deleting $#h1_msgs_delete_older messages in $h1_fold before $cutoff_date with EXPUNGE $sync->{ dry_message }\n"  ) ;
++                        delete_messages_on_any( $sync, $sync->{ acc1 }, $sync->{ imap1 }, "Host1: $h1_fold", 1, $split1, @h1_msgs_delete_older ) ;
++                }
++        }
+         if ( $sync->{ expunge1 } ){
+                 myprint( "Host1: Expunging folder $h1_fold $sync->{ dry_message }\n"  ) ;
+                 if ( ! $sync->{dry} ) { $sync->{ imap1 }->expunge(  ) } ;
+@@ -22714,6 +22723,7 @@ sub get_options_cmd
+         'synclabels!'         => \$mysync->{ synclabels },
+         'resynclabels!'       => \$mysync->{ resynclabels },
+         'delete|delete1!'     => \$mysync->{ delete1 },
++        'delete1older=i'      => \$mysync->{ delete1older },
+         'delete2!'            => \$mysync->{ delete2 },
+         'delete2duplicates!'  => \$mysync->{ delete2duplicates },
+         'delete2folders!'     => \$mysync->{ delete2folders },

@@ -34,7 +34,7 @@ index a7f8f11..b2a9915 100755
                                  # same thing below on all total_bytes_max_reached!
                                  last FOLDER ;
                          }
-+                        push @h2_msgs_for_sieve, $h2_msg ; # Store UID for Sieve processing
++                        push @h2_msgs_for_sieve, $h2_msg if (defined $h2_msg) ; # Store UID for Sieve processing
                          next MESS;
                  }
                  else

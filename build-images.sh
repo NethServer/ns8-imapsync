@@ -20,7 +20,9 @@ set -e
 apk add --no-cache imapsync cronie patch
 EOF
 buildah add "${container}" imapsync/ /
-buildah run --workingdir=/usr/bin/ "${container}" patch -p1 < imapsync-sievedelivery2.patch
+buildah run "${container}" cp -vp /usr/bin/imapsync{,.orig}
+buildah run "${container}" patch -d /usr/bin -p1 < imapsync-sievedelivery2.patch
+buildah run "${container}" patch -d /usr/bin -p1 < imapsync-delete1older.patch
 # Commit the image
 buildah commit --rm "${container}" "${repobase}/${reponame}"
 

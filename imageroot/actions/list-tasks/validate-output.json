@@ -121,6 +121,9 @@
                     "delete_remote": {
                         "type": "boolean"
                     },
+                    "delete_remote_older": {
+                        "type": "integer"
+                    },
                     "expunge_remote": {
                         "type": "string"
                     },
@@ -154,6 +157,7 @@
                     "security",
                     "delete_local",
                     "delete_remote",
+                    "delete_remote_older",
                     "foldersynchronization",
                     "remotepassword",
                     "service_running"
