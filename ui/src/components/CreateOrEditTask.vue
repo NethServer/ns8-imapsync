@@ -187,7 +187,26 @@
             value="delete_local"
             v-model="task.delete"
           /> -->
+          <cv-radio-button
+            :name="'radio-group-delete_local'"
+            :label="$t('tasks.delete_remote_older')"
+            value="delete_remote_older"
+            v-model="deleteMsg"
+            :disabled="loading.createTask"
+          />
         </cv-radio-group>
+        <NsTextInput
+          v-if="deleteMsg == 'delete_remote_older'"
+          v-model.number="deleteRemoteOlder"
+          type="number"
+          min="1"
+          max="99999"
+          :label="$t('tasks.delete_remote_older_helper')"
+          ref="delete_remote_older"
+          :disabled="loading.createTask"
+          :invalid-message="$t(error.delete_remote_older)"
+          class="mg-left"
+        />
         <NsSlider
           v-model="cron"
           :label="$t('tasks.select_your_cron')"
@@ -264,6 +283,7 @@ export default {
         remoteusername: "",
         remotepassword: "",
         remotehostname: "",
+        delete_remote_older: "",
         remoteport: "",
       },
     };
@@ -284,6 +304,7 @@ export default {
         this.folderSynchronization = this.task.foldersynchronization;
         this.exclude = this.task.exclude;
         this.deleteMsg = this.task.delete;
+        this.deleteRemoteOlder = String(this.task.delete_remote_older);
         this.cron = this.task.cron;
         this.cronEnabled = this.task.cron_enabled;
       } else {
@@ -304,6 +325,7 @@ export default {
       this.folderSynchronization = "all";
       this.exclude = "";
       this.deleteMsg = "no_delete";
+      this.deleteRemoteOlder = "15";
       this.cron = "0";
       this.cronEnabled = false;
     },
@@ -358,6 +380,27 @@ export default {
           this.focusElement("exclude");
         }
         isValidationOk = false;
+      }
+      if (this.deleteMsg == "delete_remote_older") {
+        if (!this.deleteRemoteOlder) {
+          this.error.delete_remote_older = "common.required";
+
+          if (isValidationOk) {
+            this.focusElement("delete_remote_older");
+          }
+          isValidationOk = false;
+        }
+        if (
+          isNaN(Number(this.deleteRemoteOlder)) ||
+          Number(this.deleteRemoteOlder) < 1 ||
+          Number(this.deleteRemoteOlder) > 99999
+        ) {
+          this.error.delete_remote_older = "tasks.delete_remote_older_error";
+          if (isValidationOk) {
+            this.focusElement("delete_remote_older");
+          }
+          isValidationOk = false;
+        }
       }
       return isValidationOk;
     },
@@ -418,7 +461,12 @@ export default {
             remoteusername: this.remoteUsername,
             security: this.security,
             delete_local: this.deleteMsg === "delete_local" ? true : false,
-            delete_remote: this.deleteMsg === "delete_remote" ? true : false,
+            delete_remote:
+              this.deleteMsg == "delete_remote" ||
+              this.deleteMsg == "delete_remote_older"
+                ? true
+                : false,
+            delete_remote_older: Number(this.deleteRemoteOlder),
             exclude: this.exclude
               .split("\n")
               .map((item) => item.trim())

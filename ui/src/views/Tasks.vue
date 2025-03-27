@@ -300,6 +300,7 @@ export default {
         remoteport: "143",
         security: "",
         delete: "no_delete",
+        delete_remote_older: "15",
         exclude: "",
         cron: "5",
         foldersynchronization: "all",
@@ -416,8 +417,11 @@ export default {
           delete: task.delete_local
             ? "delete_local"
             : task.delete_remote
-            ? "delete_remote"
+            ? task.delete_remote_older != "0"
+              ? "delete_remote_older"
+              : "delete_remote"
             : "no_delete",
+          delete_remote_older: task.delete_remote_older,
           cron: cronValue, // Use the transformed cron value as a string
           cron_enabled: cron_enabled,
           foldersynchronization: task.foldersynchronization,
@@ -458,6 +462,7 @@ export default {
       this.currentTask.remoteport = "143";
       this.currentTask.security = "tls";
       this.currentTask.delete = "no_delete";
+      this.currentTask.delete_remote_older = "15";
       this.currentTask.exclude = "";
       this.currentTask.cron_enabled = false;
       this.currentTask.cron = "5";
