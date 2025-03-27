@@ -106,13 +106,14 @@
             $t("tasks.use_imaps_default_993/tcp")
           }}</cv-dropdown-item>
         </cv-dropdown>
-        <span class="mg-bottom">
+        <span class="bx--label">
           {{ $t("tasks.synchronize_folders") }}
           <cv-tooltip
             alignment="start"
             direction="bottom"
             :tip="$t('tasks.synchronize_folders_explanation')"
-            class="info mg-bottom"
+            class="info"
+            style="top: 4px"
           >
           </cv-tooltip>
         </span>
@@ -153,13 +154,14 @@
           </cv-text-area>
         </template>
 
-        <span class="mg-bottom">
+        <span class="bx--label">
           {{ $t("tasks.remove_mails") }}
           <cv-tooltip
             alignment="start"
             direction="bottom"
             :tip="$t('tasks.imapsync_removal_explanation')"
-            class="info mg-bottom"
+            class="info"
+            style="top: 4px"
           >
           </cv-tooltip>
         </span>
