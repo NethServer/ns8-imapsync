@@ -71,7 +71,7 @@
         <NsTextInput
           v-model.trim="remoteHostname"
           :label="$t('tasks.remotehostname')"
-          placeholder="imap.domain.com"
+          :placeholder="$t('tasks.remotehostname_placeholder')"
           ref="remotehostname"
           :invalid-message="$t(error.remotehostname)"
           :disabled="loading.createTask"
@@ -108,27 +108,19 @@
         </cv-dropdown>
         <span class="bx--label">
           {{ $t("tasks.synchronize_folders") }}
-          <cv-tooltip
-            alignment="start"
-            direction="bottom"
-            :tip="$t('tasks.synchronize_folders_explanation')"
-            class="info"
-            style="top: 4px"
-          >
-          </cv-tooltip>
         </span>
         <cv-radio-group vertical class="mg-bottom mg-left">
           <cv-radio-button
             :name="'radio-group-foldersynchronization'"
-            :label="$t('tasks.syncronize_all')"
-            value="all"
+            :label="$t('tasks.synchronize_only_INBOX')"
+            value="inbox"
             v-model="folderSynchronization"
             :disabled="loading.createTask"
           />
           <cv-radio-button
             :name="'radio-group-foldersynchronization'"
-            :label="$t('tasks.synchronize_only_INBOX')"
-            value="inbox"
+            :label="$t('tasks.syncronize_all')"
+            value="all"
             v-model="folderSynchronization"
             :disabled="loading.createTask"
           />
@@ -156,14 +148,30 @@
 
         <span class="bx--label">
           {{ $t("tasks.remove_mails") }}
-          <cv-tooltip
+          <cv-interactive-tooltip
             alignment="start"
             direction="bottom"
-            :tip="$t('tasks.imapsync_removal_explanation')"
             class="info"
-            style="top: 4px"
+            style="position: relative; top: 4px"
           >
-          </cv-tooltip>
+            <template slot="trigger">
+              <Information16 />
+            </template>
+            <template slot="content">
+              <i18n path="tasks.imapsync_removal_explanation" tag="p">
+                <template v-slot:link_imapsync_manual_page>
+                  <cv-link
+                    href="https://docs.nethserver.org/projects/ns8/en/latest/imapsync.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    class="inline"
+                  >
+                    {{ $t("tasks.link_imapsync_manual_page_text") }}
+                  </cv-link>
+                </template>
+              </i18n>
+            </template>
+          </cv-interactive-tooltip>
         </span>
         <cv-radio-group vertical class="mg-bottom mg-left">
           <cv-radio-button
@@ -173,7 +181,6 @@
             v-model="deleteMsg"
             :disabled="loading.createTask"
           />
-
           <cv-radio-button
             :name="'radio-group-delete_local'"
             :label="$t('tasks.delete_on_remote')"
@@ -217,12 +224,12 @@
           minLabel=""
           maxLabel=""
           showUnlimited
-          :unlimitedLabel="$t('tasks.disabled')"
-          :limitedLabel="$t('tasks.enabled')"
+          :unlimitedLabel="$t('tasks.cron_disabled')"
+          :limitedLabel="$t('tasks.cron_enabled')"
           :isUnlimited="!cronEnabled"
           :invalidMessage="$t(error.cron)"
           :disabled="loading.createTask"
-          :unitLabel="$t('tasks.minutes')"
+          :unitLabel="$t('tasks.cron_interval_minutes')"
           @unlimited="cronEnabled = !$event"
           class="mg-bottom-xlg"
         />
@@ -247,6 +254,7 @@
 import to from "await-to-js";
 import { UtilService, TaskService } from "@nethserver/ns8-ui-lib";
 import { mapState } from "vuex";
+import Information16 from "@carbon/icons-vue/es/information/16";
 
 export default {
   name: "CreateOrEditTask",
@@ -257,7 +265,9 @@ export default {
     task: { type: [Object, null] },
     enabled_mailboxes: { type: Array },
   },
-
+  components: {
+    Information16,
+  },
   data() {
     return {
       isValidated: false,
@@ -276,7 +286,7 @@ export default {
       cron: "0",
       cronEnabled: false,
       error: {
-        enabled_mailboxe: "",
+        enabled_mailboxes: "",
         createTask: "",
         exclude: "",
         localuser: "",
