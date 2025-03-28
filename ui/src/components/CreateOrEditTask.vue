@@ -111,23 +111,23 @@
         </span>
         <cv-radio-group vertical class="mg-bottom mg-left">
           <cv-radio-button
-            :name="'radio-group-foldersynchronization'"
             :label="$t('tasks.synchronize_only_INBOX')"
             value="inbox"
+            ref="folderSynchronization"
             v-model="folderSynchronization"
             :disabled="loading.createTask"
           />
           <cv-radio-button
-            :name="'radio-group-foldersynchronization'"
             :label="$t('tasks.syncronize_all')"
             value="all"
+            ref="folderSynchronization"
             v-model="folderSynchronization"
             :disabled="loading.createTask"
           />
           <cv-radio-button
-            :name="'radio-group-foldersynchronization'"
             :label="$t('tasks.syncronize_with_exclusion')"
             value="exclusion"
+            ref="folderSynchronization"
             v-model="folderSynchronization"
             :disabled="loading.createTask"
           />
@@ -175,29 +175,23 @@
         </span>
         <cv-radio-group vertical class="mg-bottom mg-left">
           <cv-radio-button
-            :name="'radio-group-delete_local'"
             :label="$t('tasks.no_deletion')"
             value="no_delete"
+            ref="deleteMsg"
             v-model="deleteMsg"
             :disabled="loading.createTask"
           />
           <cv-radio-button
-            :name="'radio-group-delete_local'"
             :label="$t('tasks.delete_on_remote')"
             value="delete_remote"
+            ref="deleteMsg"
             v-model="deleteMsg"
             :disabled="loading.createTask"
           />
-          <!-- <cv-radio-button
-            :name="'radio-group-delete_remote'"
-            :label="$t('tasks.delete_on_local')"
-            value="delete_local"
-            v-model="task.delete"
-          /> -->
           <cv-radio-button
-            :name="'radio-group-delete_local'"
             :label="$t('tasks.delete_remote_older')"
             value="delete_remote_older"
+            ref="deleteMsg"
             v-model="deleteMsg"
             :disabled="loading.createTask"
           />
