@@ -52,12 +52,14 @@
           v-model.trim="remoteUsername"
           :label="$t('tasks.remoteusername')"
           ref="remoteusername"
+          autocomplete="off"
           :invalid-message="$t(error.remoteusername)"
           :disabled="loading.createTask"
         />
         <NsTextInput
           v-model.trim="remotePassword"
           type="password"
+          autocomplete="new-password"
           :label="$t('tasks.remotepassword')"
           ref="remotepassword"
           :invalid-message="$t(error.remotepassword)"
@@ -69,7 +71,7 @@
         <NsTextInput
           v-model.trim="remoteHostname"
           :label="$t('tasks.remotehostname')"
-          placeholder="imap.domain.com"
+          :placeholder="$t('tasks.remotehostname_placeholder')"
           ref="remotehostname"
           :invalid-message="$t(error.remotehostname)"
           :disabled="loading.createTask"
@@ -104,35 +106,28 @@
             $t("tasks.use_imaps_default_993/tcp")
           }}</cv-dropdown-item>
         </cv-dropdown>
-        <span class="mg-bottom">
+        <span class="bx--label">
           {{ $t("tasks.synchronize_folders") }}
-          <cv-tooltip
-            alignment="start"
-            direction="bottom"
-            :tip="$t('tasks.synchronize_folders_explanation')"
-            class="info mg-bottom"
-          >
-          </cv-tooltip>
         </span>
         <cv-radio-group vertical class="mg-bottom mg-left">
           <cv-radio-button
-            :name="'radio-group-foldersynchronization'"
-            :label="$t('tasks.syncronize_all')"
-            value="all"
-            v-model="folderSynchronization"
-            :disabled="loading.createTask"
-          />
-          <cv-radio-button
-            :name="'radio-group-foldersynchronization'"
             :label="$t('tasks.synchronize_only_INBOX')"
             value="inbox"
+            ref="folderSynchronization"
             v-model="folderSynchronization"
             :disabled="loading.createTask"
           />
           <cv-radio-button
-            :name="'radio-group-foldersynchronization'"
+            :label="$t('tasks.syncronize_all')"
+            value="all"
+            ref="folderSynchronization"
+            v-model="folderSynchronization"
+            :disabled="loading.createTask"
+          />
+          <cv-radio-button
             :label="$t('tasks.syncronize_with_exclusion')"
             value="exclusion"
+            ref="folderSynchronization"
             v-model="folderSynchronization"
             :disabled="loading.createTask"
           />
@@ -151,39 +146,68 @@
           </cv-text-area>
         </template>
 
-        <span class="mg-bottom">
+        <span class="bx--label">
           {{ $t("tasks.remove_mails") }}
-          <cv-tooltip
+          <cv-interactive-tooltip
             alignment="start"
             direction="bottom"
-            :tip="$t('tasks.imapsync_removal_explanation')"
-            class="info mg-bottom"
+            class="info"
+            style="position: relative; top: 4px"
           >
-          </cv-tooltip>
+            <template slot="trigger">
+              <Information16 />
+            </template>
+            <template slot="content">
+              <i18n path="tasks.imapsync_removal_explanation" tag="p">
+                <template v-slot:link_imapsync_manual_page>
+                  <cv-link
+                    href="https://docs.nethserver.org/projects/ns8/en/latest/imapsync.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    class="inline"
+                  >
+                    {{ $t("tasks.link_imapsync_manual_page_text") }}
+                  </cv-link>
+                </template>
+              </i18n>
+            </template>
+          </cv-interactive-tooltip>
         </span>
         <cv-radio-group vertical class="mg-bottom mg-left">
           <cv-radio-button
-            :name="'radio-group-delete_local'"
             :label="$t('tasks.no_deletion')"
             value="no_delete"
+            ref="deleteMsg"
             v-model="deleteMsg"
             :disabled="loading.createTask"
           />
-
           <cv-radio-button
-            :name="'radio-group-delete_local'"
             :label="$t('tasks.delete_on_remote')"
             value="delete_remote"
+            ref="deleteMsg"
             v-model="deleteMsg"
             :disabled="loading.createTask"
           />
-          <!-- <cv-radio-button
-            :name="'radio-group-delete_remote'"
-            :label="$t('tasks.delete_on_local')"
-            value="delete_local"
-            v-model="task.delete"
-          /> -->
+          <cv-radio-button
+            :label="$t('tasks.delete_remote_older')"
+            value="delete_remote_older"
+            ref="deleteMsg"
+            v-model="deleteMsg"
+            :disabled="loading.createTask"
+          />
         </cv-radio-group>
+        <NsTextInput
+          v-if="deleteMsg == 'delete_remote_older'"
+          v-model.number="deleteRemoteOlder"
+          type="number"
+          min="1"
+          max="99999"
+          :label="$t('tasks.delete_remote_older_helper')"
+          ref="delete_remote_older"
+          :disabled="loading.createTask"
+          :invalid-message="$t(error.delete_remote_older)"
+          class="mg-left"
+        />
         <NsSlider
           v-model="cron"
           :label="$t('tasks.select_your_cron')"
@@ -194,12 +218,12 @@
           minLabel=""
           maxLabel=""
           showUnlimited
-          :unlimitedLabel="$t('tasks.disabled')"
-          :limitedLabel="$t('tasks.enabled')"
+          :unlimitedLabel="$t('tasks.cron_disabled')"
+          :limitedLabel="$t('tasks.cron_enabled')"
           :isUnlimited="!cronEnabled"
           :invalidMessage="$t(error.cron)"
           :disabled="loading.createTask"
-          :unitLabel="$t('tasks.minutes')"
+          :unitLabel="$t('tasks.cron_interval_minutes')"
           @unlimited="cronEnabled = !$event"
           class="mg-bottom-xlg"
         />
@@ -224,6 +248,7 @@
 import to from "await-to-js";
 import { UtilService, TaskService } from "@nethserver/ns8-ui-lib";
 import { mapState } from "vuex";
+import Information16 from "@carbon/icons-vue/es/information/16";
 
 export default {
   name: "CreateOrEditTask",
@@ -234,7 +259,9 @@ export default {
     task: { type: [Object, null] },
     enabled_mailboxes: { type: Array },
   },
-
+  components: {
+    Information16,
+  },
   data() {
     return {
       isValidated: false,
@@ -253,13 +280,14 @@ export default {
       cron: "0",
       cronEnabled: false,
       error: {
-        enabled_mailboxe: "",
+        enabled_mailboxes: "",
         createTask: "",
         exclude: "",
         localuser: "",
         remoteusername: "",
         remotepassword: "",
         remotehostname: "",
+        delete_remote_older: "",
         remoteport: "",
       },
     };
@@ -280,6 +308,7 @@ export default {
         this.folderSynchronization = this.task.foldersynchronization;
         this.exclude = this.task.exclude;
         this.deleteMsg = this.task.delete;
+        this.deleteRemoteOlder = String(this.task.delete_remote_older);
         this.cron = this.task.cron;
         this.cronEnabled = this.task.cron_enabled;
       } else {
@@ -300,6 +329,7 @@ export default {
       this.folderSynchronization = "all";
       this.exclude = "";
       this.deleteMsg = "no_delete";
+      this.deleteRemoteOlder = "15";
       this.cron = "0";
       this.cronEnabled = false;
     },
@@ -354,6 +384,27 @@ export default {
           this.focusElement("exclude");
         }
         isValidationOk = false;
+      }
+      if (this.deleteMsg == "delete_remote_older") {
+        if (!this.deleteRemoteOlder) {
+          this.error.delete_remote_older = "common.required";
+
+          if (isValidationOk) {
+            this.focusElement("delete_remote_older");
+          }
+          isValidationOk = false;
+        }
+        if (
+          isNaN(Number(this.deleteRemoteOlder)) ||
+          Number(this.deleteRemoteOlder) < 1 ||
+          Number(this.deleteRemoteOlder) > 99999
+        ) {
+          this.error.delete_remote_older = "tasks.delete_remote_older_error";
+          if (isValidationOk) {
+            this.focusElement("delete_remote_older");
+          }
+          isValidationOk = false;
+        }
       }
       return isValidationOk;
     },
@@ -414,7 +465,12 @@ export default {
             remoteusername: this.remoteUsername,
             security: this.security,
             delete_local: this.deleteMsg === "delete_local" ? true : false,
-            delete_remote: this.deleteMsg === "delete_remote" ? true : false,
+            delete_remote:
+              this.deleteMsg == "delete_remote" ||
+              this.deleteMsg == "delete_remote_older"
+                ? true
+                : false,
+            delete_remote_older: Number(this.deleteRemoteOlder),
             exclude: this.exclude
               .split("\n")
               .map((item) => item.trim())

@@ -77,14 +77,15 @@ else:
             data["delete_remote"] = True
             data["delete_remote_older"] = 0
         elif "delete_remote" in data and data["delete_remote"].startswith("--delete1older="):
-            data["delete_remote"] = True
             try:
                 data["delete_remote_older"] = int(data["delete_remote"].removeprefix("--delete1older="))
             except ValueError:
                 data["delete_remote_older"] = 0
+            data["delete_remote"] = True
         elif "delete_remote" in data and data["delete_remote"] == "":
             data["delete_remote"] = False
-    
+            data["delete_remote_older"] = 0
+
         # remote password UI must never knows it
         data['remotepassword']=""
         #test if service is running 

@@ -16,7 +16,7 @@
             >
               <template slot="trigger"></template>
               <template slot="content">
-                <div>{{ $t("tasks.title_tooltip")}}</div>
+                <div>{{ $t("tasks.title_tooltip") }}</div>
               </template>
             </cv-interactive-tooltip>
           </h2>
@@ -300,6 +300,7 @@ export default {
         remoteport: "143",
         security: "",
         delete: "no_delete",
+        delete_remote_older: "15",
         exclude: "",
         cron: "5",
         foldersynchronization: "all",
@@ -389,6 +390,7 @@ export default {
     listTasksCompleted(taskContext, taskResult) {
       let Config = taskResult.output;
       this.enabled_mailboxes = Config.enabled_mailboxes;
+      const tasks = [];
       Config.user_properties.forEach((task) => {
         // Transform the cron value
         let cronValue = task.cron;
@@ -404,7 +406,7 @@ export default {
           cron_enabled = false;
         }
 
-        this.tasks.push({
+        tasks.push({
           task_id: task.task_id,
           localuser: task.localuser,
           service: task.service_running,
@@ -416,8 +418,11 @@ export default {
           delete: task.delete_local
             ? "delete_local"
             : task.delete_remote
-            ? "delete_remote"
+            ? task.delete_remote_older != "0"
+              ? "delete_remote_older"
+              : "delete_remote"
             : "no_delete",
+          delete_remote_older: task.delete_remote_older,
           cron: cronValue, // Use the transformed cron value as a string
           cron_enabled: cron_enabled,
           foldersynchronization: task.foldersynchronization,
@@ -427,6 +432,7 @@ export default {
             .join("\n"), // Filter empty values
         });
       });
+      this.tasks = tasks;
       this.check_tasks = this.tasks.length ? true : false;
       this.loading.listTasks = false;
     },
@@ -449,19 +455,22 @@ export default {
     },
     toggleCreateTask() {
       this.isEdit = false;
-      this.currentTask.task_id = this.generateRandomId(6);
-      this.currentTask.localuser = "";
-      this.currentTask.remoteusername = "";
-      this.currentTask.remotehostname = "";
-      this.currentTask.remotepassword = "";
-      this.currentTask.service = false;
-      this.currentTask.remoteport = "143";
-      this.currentTask.security = "tls";
-      this.currentTask.delete = "no_delete";
-      this.currentTask.exclude = "";
-      this.currentTask.cron_enabled = false;
-      this.currentTask.cron = "5";
-      this.currentTask.foldersynchronization = "all";
+      this.currentTask = {
+        task_id: this.generateRandomId(6),
+        localuser: "",
+        remoteusername: "",
+        remotehostname: "",
+        remotepassword: "",
+        service: false,
+        remoteport: "143",
+        security: "tls",
+        delete: "no_delete",
+        delete_remote_older: "15",
+        exclude: "",
+        cron_enabled: false,
+        cron: "5",
+        foldersynchronization: "all",
+      };
       this.showCreateOrEditTask();
     },
     showCreateOrEditTask() {
