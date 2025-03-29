@@ -1,9 +1,9 @@
 {
     "tasks": {
-        "col_remotehostname": "IMAP server",
-        "edit": "Edit",
         "start_by^_and_end_by$": "For exact match you should start by ^ and end by $",
         "delete_on_remote": "Delete messages on remote once synchronized",
+        "col_remotehostname": "IMAP server",
+        "edit": "Edit",
         "title_tooltip": "Use Imapsync to synchronize local and remote imap accounts",
         "confirm_delete_task_message": "Are you sure you want to delete this task?",
         "confirm_create_task_message": "Confirm the settings and start the task",
@@ -26,8 +26,9 @@
         "fetching_statistic_please_wait": "Waiting to retrieve statictics, please wait",
         "start_all": "Start all tasks",
         "configure_imapsync": "Go to the settings",
-        "something_wrong_cannot_list_informations": "Something went wront we cannot list the remote and account informations",
+        "something_wrong_cannot_list_informations": "Something went wrong, we cannot list the remote and account information",
         "select_your_cron": "select your task frequency",
+        "unchanged_password_placeholder": "Unchanged",
         "none": "No encryption",
         "delete_on_local": "Delete messages on local that are not on remote (full clone)",
         "no_more_task": "No more task",
@@ -35,9 +36,9 @@
         "remove_mails": "Messages removal",
         "trashsync_tips": "Synchronize the deleted messages and folders on the remote server",
         "col_task_id": "Task ID",
+        "stopped": "Stopped",
         "write_one_exclusion_per_line": "Write one exclusion per line",
         "remoteport": "IMAP TCP Port",
-        "stopped": "Stopped",
         "hour": "hour",
         "no_deletion": "No deletion",
         "not_configured": "Not configured",
@@ -45,7 +46,7 @@
         "encryption_depends_remote_server": "The encryption is required by the remote IMAP server",
         "running": "Running",
         "col_task_cron": "Task frequency",
-        "informations": "Informations",
+        "informations": "Information",
         "edit_task": "Edit task",
         "create_task": "Create task",
         "col_remoteusername": "Remote user",
@@ -75,7 +76,6 @@
         "exclude_folder": "Folders exclusion",
         "local_user": "Local user",
         "select_your_encryption": "Select encryption",
-        "unchanged_password_placeholder": "Unchanged",
         "remotehostname_placeholder": "E.g. imap.example.org",
         "cron_interval_minutes": "minutes",
         "cron_disabled": "Not scheduled, manual execution only",
@@ -99,16 +99,16 @@
         "title": "Settings"
     },
     "error": {
-        "403": "Operation not authorized",
+        "403": "opdracht niet goedgekeurd",
         "cannot_retrieve_installed_modules": "Cannot retrieve installed modules",
-        "401": "Invalid authentication",
+        "401": "Ongeldige authenticatie",
         "cannot_retrieve_module_info": "Cannot retrieve module info",
-        "generic_error": "Something went wrong",
-        "error": "Error",
-        "network_timeout": "Network timeout",
-        "404": "Resource not found",
-        "network_error": "Network error",
-        "validation_error": "Validation error"
+        "generic_error": "Er ging iets mis",
+        "error": "Fout",
+        "network_timeout": "Netwerk time-out",
+        "404": "Bron niet gevonden",
+        "network_error": "Netwerkfout",
+        "validation_error": "Validatiefout"
     },
     "action": {
         "start-task": "Start task",
@@ -116,7 +116,7 @@
         "list-backup-repositories": "List backup repositories",
         "list-tasks": "List the tasks",
         "stop-task": "Stop task",
-        "list-informations": "List informations",
+        "list-informations": "List information",
         "start-all-tasks": "Start all tasks",
         "get-module-info": "Get module info",
         "stop-all-tasks": "Stop all tasks",
@@ -129,10 +129,10 @@
         "get-name": "Get name"
     },
     "common": {
-        "required": "Required",
-        "save": "Save",
+        "required": "Vereist",
+        "save": "Bewaren",
         "work_in_progress": "Work in progress",
-        "cancel": "Cancel",
+        "cancel": "Annuleren",
         "processing": "Processing..."
     },
     "status": {
