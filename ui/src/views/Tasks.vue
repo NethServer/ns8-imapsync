@@ -301,6 +301,7 @@ export default {
         security: "",
         delete: "no_delete",
         delete_remote_older: "15",
+        sieve_enabled: false,
         exclude: "",
         cron: "5",
         foldersynchronization: "all",
@@ -423,6 +424,7 @@ export default {
               : "delete_remote"
             : "no_delete",
           delete_remote_older: task.delete_remote_older,
+          sieve_enabled: task.sieve_enabled,
           cron: cronValue, // Use the transformed cron value as a string
           cron_enabled: cron_enabled,
           foldersynchronization: task.foldersynchronization,
@@ -466,6 +468,7 @@ export default {
         security: "tls",
         delete: "no_delete",
         delete_remote_older: "15",
+        sieve_enabled: false,
         exclude: "",
         cron_enabled: false,
         cron: "5",

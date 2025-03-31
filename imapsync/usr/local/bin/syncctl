@@ -69,6 +69,9 @@ if [[ "${action}" == "start" ]]; then
         search1recent=1
         maxage=
     fi
+    if [[ -n "${FOLDER_INBOX}" ]] && [[ -n "${SIEVE_ENABLED}" ]]; then
+        sieve_enabled=1
+    fi
     # retrieve unixtimestamp
     timestamp="$(date +%s)"
 
@@ -81,7 +84,8 @@ if [[ "${action}" == "start" ]]; then
         --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
         --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
-        ${FOLDER_INBOX} ${FOLDER_INBOX:+--sievedelivery2} \
+        ${FOLDER_INBOX} \
+        ${sieve_enabled:+--sievedelivery2} \
         ${search1recent:+--search1=NEW --nochecknoabletosearch --nocheckfoldersexist --nocheckselectable} \
         --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
         # FOLDER_INBOX must not be enquoted NethServer/dev#7296

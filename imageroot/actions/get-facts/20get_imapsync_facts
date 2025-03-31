@@ -19,6 +19,7 @@ def main():
         "tasks_inbox_count": 0,
         "tasks_inbox_and_delete_count": 0,
         "tasks_cron_enabled_count": 0,
+        "tasks_sieve_enabled_count": 0,
     }
     count_tasks(facts)
     json.dump(facts, fp=sys.stdout)
@@ -37,6 +38,8 @@ def count_tasks(facts):
             facts["tasks_inbox_and_delete_count"] += 1
         if task_env.get("CRON"):
             facts["tasks_cron_enabled_count"] += 1
+        if task_env.get("SIEVE_ENABLED", "") != "":
+            facts["tasks_sieve_enabled_count"] += 1
 
 if __name__ == "__main__":
     main()
