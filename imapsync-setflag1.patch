@@ -1,0 +1,47 @@
+commit 10562d1f101589585e809a39984db19ae9f73b65
+Author: Davide Principi <davide.principi@nethesis.it>
+Date:   Mon Mar 31 17:50:08 2025 +0200
+
+    feat(setflag1): mark remote messages with a flag
+    
+    After message and flags transfer, the new option --setflag1 sets an IMAP
+    flag (e.g. Seen) on the remote side.
+    
+    This option, paired with --search allows to exclude messages from double
+    transfers.
+
+diff --git a/imapsync b/imapsync
+index 8a47a34..cead256 100755
+--- a/imapsync
++++ b/imapsync
+@@ -516,6 +516,9 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
+  --filterbuggyflags  : Filter flags known to be buggy and generators of errors
+                        "BAD Invalid system flag" or "NO APPEND Invalid flag list".
+ 
++ --setflag1     flag : After message transfer, mark it with flag on host1.
++                       Flag must be the name of an IMAP flag.
++
+ =head2 OPTIONS/deletions
+ 
+  --delete1           : Deletes messages on host1 server after a successful
+@@ -12953,6 +12956,12 @@ sub copy_message
+                 sync_flags_after_copy( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $new_id ) ;
+         }
+ 
++        if ( $mysync->{ setflag1 } ) {
++                ( $mysync->{ debug } or $mysync->{ debugflags } ) and
++                myprint( "Host1: msg $h1_fold/$h1_msg --setflag1=" . $mysync->{setflag1} . "\n"  ) ;
++                $mysync->{ imap1 }->set_flag($mysync->{ setflag1 }, [$h1_msg]);
++        }
++
+         myprint( debugmemory( $mysync, " at sub copy_message 3" ) ) ;
+ 
+         return $new_id ;
+@@ -22730,6 +22739,7 @@ sub get_options_cmd
+         'delete2foldersonly=s'   => \$mysync->{ delete2foldersonly },
+         'delete2foldersbutnot=s' => \$mysync->{ delete2foldersbutnot },
+         'sievedelivery2!'    => \$mysync->{ sievedelivery2 },
++        'setflag1=s'         => \$mysync->{ setflag1 },
+         'syncinternaldates!' => \$syncinternaldates,
+         'idatefromheader!'   => \$idatefromheader,
+         'syncacls!'          => \$mysync->{ syncacls },
