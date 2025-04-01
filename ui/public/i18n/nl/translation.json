@@ -1,7 +1,4 @@
 {
-    "about": {
-        "title": "Honi buruz"
-    },
     "tasks": {
         "start_by^_and_end_by$": "For exact match you should start by ^ and end by $",
         "delete_on_remote": "Delete messages on remote once synchronized",
@@ -29,8 +26,9 @@
         "fetching_statistic_please_wait": "Waiting to retrieve statictics, please wait",
         "start_all": "Start all tasks",
         "configure_imapsync": "Go to the settings",
-        "something_wrong_cannot_list_informations": "Something went wront we cannot list the remote and account informations",
+        "something_wrong_cannot_list_informations": "Something went wrong, we cannot list the remote and account information",
         "select_your_cron": "select your task frequency",
+        "unchanged_password_placeholder": "Unchanged",
         "none": "No encryption",
         "delete_on_local": "Delete messages on local that are not on remote (full clone)",
         "no_more_task": "No more task",
@@ -48,7 +46,7 @@
         "encryption_depends_remote_server": "The encryption is required by the remote IMAP server",
         "running": "Running",
         "col_task_cron": "Task frequency",
-        "informations": "Informations",
+        "informations": "Information",
         "edit_task": "Edit task",
         "create_task": "Create task",
         "col_remoteusername": "Remote user",
@@ -78,7 +76,6 @@
         "exclude_folder": "Folders exclusion",
         "local_user": "Local user",
         "select_your_encryption": "Select encryption",
-        "unchanged_password_placeholder": "Unchanged",
         "remotehostname_placeholder": "E.g. imap.example.org",
         "cron_interval_minutes": "minutes",
         "cron_disabled": "Not scheduled, manual execution only",
@@ -103,29 +100,29 @@
         "title": "Settings"
     },
     "error": {
-        "403": "Operation not authorized",
+        "403": "opdracht niet goedgekeurd",
         "cannot_retrieve_installed_modules": "Cannot retrieve installed modules",
-        "401": "Invalid authentication",
+        "401": "Ongeldige authenticatie",
         "cannot_retrieve_module_info": "Cannot retrieve module info",
-        "generic_error": "Something went wrong",
-        "error": "Error",
-        "network_timeout": "Network timeout",
-        "404": "Resource not found",
-        "network_error": "Network error",
-        "validation_error": "Validation error"
+        "generic_error": "Er ging iets mis",
+        "error": "Fout",
+        "network_timeout": "Netwerk time-out",
+        "404": "Bron niet gevonden",
+        "network_error": "Netwerkfout",
+        "validation_error": "Validatiefout"
     },
     "action": {
         "start-task": "Start task",
         "Tasks_list_error": "Error on action list-tasks",
-        "list-backup-repositories": "List backup repositories",
+        "list-backup-repositories": "Back-up repositories weergeven",
         "list-tasks": "List the tasks",
         "stop-task": "Stop task",
-        "list-informations": "List informations",
+        "list-informations": "List information",
         "start-all-tasks": "Start all tasks",
         "get-module-info": "Get module info",
         "stop-all-tasks": "Stop all tasks",
         "list-installed-modules": "List installed modules",
-        "list-backups": "List backups",
+        "list-backups": "Backups weergeven",
         "get-status": "Get status",
         "create-task": "Create task",
         "configure-module": "Configure module",
@@ -133,10 +130,10 @@
         "get-name": "Get name"
     },
     "common": {
-        "required": "Beharrezkoa",
-        "save": "Save",
+        "required": "Vereist",
+        "save": "Bewaren",
         "work_in_progress": "Work in progress",
-        "cancel": "Cancel",
+        "cancel": "Annuleren",
         "processing": "Processing...",
         "disabled": "Disabled",
         "enabled": "Enabled"
@@ -157,7 +154,10 @@
         "node": "Node",
         "no_volumes": "No volumes"
     },
+    "about": {
+        "title": "About"
+    },
     "task": {
-        "cannot_create_task": "Cannot create task {action}"
+        "cannot_create_task": "Kan taak {action} niet creëren"
     }
 }

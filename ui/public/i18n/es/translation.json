@@ -7,7 +7,6 @@
         "title_tooltip": "Utilice Imapsync para sincronizar cuentas imap locales y remotas",
         "confirm_delete_task_message": "¿Seguro que desea eliminar esta tarea?",
         "confirm_create_task_message": "Confirmar los ajustes e iniciar la tarea",
-        "disabled": "Deshabilitado",
         "choose_local_user": "Elige un usuario local para sincronizar los mensajes",
         "synchronize_only_INBOX": "Sincronizar sólo el buzón de entrada",
         "remotepassword": "Contraseña remota",
@@ -17,7 +16,6 @@
         "search_tasks": "Buscar tareas",
         "create": "Crear",
         "delete": "Borrar",
-        "minutes": "minutos",
         "remotehostname": "Servidor IMAP",
         "delete_task": "Eliminar tarea",
         "SSL_encryption_error": "Verificar el cifrado TLS, IMAPS o STARTTLS",
@@ -31,7 +29,6 @@
         "something_wrong_cannot_list_informations": "Algo ha ido mal, no podemos listar la información remota y de la cuenta",
         "select_your_cron": "seleccione la frecuencia de sus tareas",
         "none": "Sin cifrado",
-        "enabled": "Habilitado",
         "delete_on_local": "Borrar mensajes locales que no están en remoto (clon completo)",
         "no_more_task": "No más tareas",
         "no_tasks": "Ninguna tarea configurada",
@@ -73,13 +70,21 @@
         "STARTTLS_not_allowed_use_IMAPS": "El proveedor no permite STARTTLS",
         "stop_all": "Detener todas las tareas",
         "local_account_host2Folders": "Carpetas de la cuenta local",
-        "synchronize_folders_explanation": "Puedes decidir hacer una sincronización completa, sólo INBOX, o exclusión de carpetas",
         "no_email_server": "No se ha configurado ningún servidor de correo electrónico, vaya a los ajustes",
         "bad_user_credentials": "Verificar las credenciales del usuario, el servidor remoto se negó a autenticar",
         "exclude_folder": "Excluir carpetas",
         "local_user": "Usuario local",
         "select_your_encryption": "Seleccionar cifrado",
-        "unchanged_password_placeholder": "Unchanged"
+        "unchanged_password_placeholder": "Unchanged",
+        "cron_interval_minutes": "minutes",
+        "cron_disabled": "Not scheduled, manual execution only",
+        "delete_remote_older_helper": "Number of days",
+        "link_imapsync_manual_page_text": "Imapsync manual",
+        "remotehostname_placeholder": "E.g. imap.example.org",
+        "delete_remote_older_error": "Must be a number between 1 and 99999",
+        "delete_remote_older": "Delete messages older than a specified number of days",
+        "cron_enabled": "Run at a fixed interval (in minutes)",
+        "sieve_enabled": "Sieve filter"
     },
     "settings": {
         "mail_server_fqdn": "Servidor de correo",
@@ -129,7 +134,9 @@
         "save": "Guardar",
         "work_in_progress": "Trabajando",
         "cancel": "Cancelar",
-        "processing": "Procesando..."
+        "processing": "Procesando...",
+        "disabled": "Disabled",
+        "enabled": "Enabled"
     },
     "status": {
         "created": "Creado",

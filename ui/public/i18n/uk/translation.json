@@ -4,7 +4,9 @@
         "required": "Required",
         "work_in_progress": "Work in progress",
         "cancel": "Cancel",
-        "processing": "Processing..."
+        "processing": "Processing...",
+        "disabled": "Disabled",
+        "enabled": "Enabled"
     },
     "status": {
         "services": "Service | Services",
@@ -31,7 +33,6 @@
         "title_tooltip": "Використовуйте Imapsync для синхронізації локальних і віддалених облікових записів imap",
         "confirm_delete_task_message": "Ви впевнені, що хочете видалити це завдання?",
         "confirm_create_task_message": "Підтвердьте налаштування та запустіть завдання",
-        "disabled": "Вимкнено",
         "choose_local_user": "Виберіть локального користувача для синхронізації повідомлень",
         "synchronize_only_INBOX": "Синхронізувати тільки INBOX",
         "remotepassword": "Віддалений пароль",
@@ -41,7 +42,6 @@
         "search_tasks": "Пошукові завдання",
         "create": "Створити",
         "delete": "Видалити",
-        "minutes": "хвилин",
         "remotehostname": "сервер IMAP",
         "delete_task": "Видалити завдання",
         "SSL_encryption_error": "Перевірте шифрування TLS, IMAPS або STARTTLS",
@@ -56,7 +56,6 @@
         "select_your_cron": "виберіть частоту виконання завдань",
         "unchanged_password_placeholder": "Без змін",
         "none": "Без шифрування",
-        "enabled": "Увімкнено",
         "delete_on_local": "Видалити локальні повідомлення, яких немає на віддаленому (повний клон)",
         "no_more_task": "Більше ніяких завдань",
         "no_tasks": "Завдання не налаштовано",
@@ -97,12 +96,20 @@
         "STARTTLS_not_allowed_use_IMAPS": "STARTTLS заборонено постачальником",
         "stop_all": "Зупинити всі завдання",
         "local_account_host2Folders": "Папки в локальному обліковому записі",
-        "synchronize_folders_explanation": "Ви можете вибрати повну синхронізацію, лише папку INBOX або виключення папок",
         "no_email_server": "Сервер електронної пошти не встановлено, перейдіть до налаштувань",
         "bad_user_credentials": "Перевірте облікові дані користувача, віддалений сервер відмовився автентифікуватися",
         "exclude_folder": "Виключення папок",
         "local_user": "Локальний користувач",
-        "select_your_encryption": "Виберіть шифрування"
+        "select_your_encryption": "Виберіть шифрування",
+        "remotehostname_placeholder": "E.g. imap.example.org",
+        "cron_interval_minutes": "minutes",
+        "cron_disabled": "Not scheduled, manual execution only",
+        "delete_remote_older_helper": "Number of days",
+        "delete_remote_older_error": "Must be a number between 1 and 99999",
+        "link_imapsync_manual_page_text": "Imapsync manual",
+        "delete_remote_older": "Delete messages older than a specified number of days",
+        "cron_enabled": "Run at a fixed interval (in minutes)",
+        "sieve_enabled": "Sieve filter"
     },
     "action": {
         "start-task": "Почати завдання",

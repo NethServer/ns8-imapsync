@@ -1,8 +1,7 @@
 {
-    "about": {
-        "title": "Honi buruz"
-    },
     "tasks": {
+        "title": "Tasks",
+        "no_deletion": "No deletion",
         "start_by^_and_end_by$": "For exact match you should start by ^ and end by $",
         "delete_on_remote": "Delete messages on remote once synchronized",
         "col_remotehostname": "IMAP server",
@@ -25,12 +24,12 @@
         "start": "Start",
         "synchronize_folders": "Folder synchronization",
         "col_localuser": "Local user",
-        "title": "Tasks",
         "fetching_statistic_please_wait": "Waiting to retrieve statictics, please wait",
         "start_all": "Start all tasks",
         "configure_imapsync": "Go to the settings",
-        "something_wrong_cannot_list_informations": "Something went wront we cannot list the remote and account informations",
+        "something_wrong_cannot_list_informations": "Something went wrong, we cannot list the remote and account information",
         "select_your_cron": "select your task frequency",
+        "unchanged_password_placeholder": "Unchanged",
         "none": "No encryption",
         "delete_on_local": "Delete messages on local that are not on remote (full clone)",
         "no_more_task": "No more task",
@@ -42,13 +41,12 @@
         "write_one_exclusion_per_line": "Write one exclusion per line",
         "remoteport": "IMAP TCP Port",
         "hour": "hour",
-        "no_deletion": "No deletion",
         "not_configured": "Not configured",
         "local_account_host2Messages": "Messages on local account",
         "encryption_depends_remote_server": "The encryption is required by the remote IMAP server",
         "running": "Running",
         "col_task_cron": "Task frequency",
-        "informations": "Informations",
+        "informations": "Information",
         "edit_task": "Edit task",
         "create_task": "Create task",
         "col_remoteusername": "Remote user",
@@ -59,9 +57,6 @@
         "every_minutes": "Every {num} minutes",
         "col_task_status": "Task status",
         "no_cron": "Not scheduled",
-        "remote_account_host1Sizes": "Messages size on remote account",
-        "use_starttls_default_143/tcp": "STARTTLS (default 143/tcp)",
-        "syncronize_all": "Synchronize all recursively",
         "reload_tasks": "Refresh",
         "remote_account_host1Messages": "Messages on remote account",
         "choose_the_user_to_sync": "Choose a user managed by your email server to synchronize the remote messages",
@@ -69,6 +64,9 @@
         "imapsync_removal_explanation": "Imapsync can remove messages on remote once synchronized on the local server",
         "stop": "Stop",
         "use_imaps_default_993/tcp": "IMAPS (default 993/tcp)",
+        "remote_account_host1Sizes": "Messages size on remote account",
+        "use_starttls_default_143/tcp": "STARTTLS (default 143/tcp)",
+        "syncronize_all": "Synchronize all recursively",
         "Check_hostname_or_tcp_port": "Verify the Hostname and the TCP port, the remote server refused to authenticate",
         "STARTTLS_not_allowed_use_IMAPS": "STARTTLS is not allowed by the provider",
         "stop_all": "Stop all tasks",
@@ -78,15 +76,14 @@
         "exclude_folder": "Folders exclusion",
         "local_user": "Local user",
         "select_your_encryption": "Select encryption",
-        "unchanged_password_placeholder": "Unchanged",
         "remotehostname_placeholder": "E.g. imap.example.org",
-        "cron_interval_minutes": "minutes",
         "cron_disabled": "Not scheduled, manual execution only",
+        "cron_enabled": "Run at a fixed interval (in minutes)",
+        "cron_interval_minutes": "minutes",
         "delete_remote_older_helper": "Number of days",
         "delete_remote_older_error": "Must be a number between 1 and 99999",
         "link_imapsync_manual_page_text": "Imapsync manual",
         "delete_remote_older": "Delete messages older than a specified number of days",
-        "cron_enabled": "Run at a fixed interval (in minutes)",
         "sieve_enabled": "Sieve filter"
     },
     "settings": {
@@ -120,7 +117,7 @@
         "list-backup-repositories": "List backup repositories",
         "list-tasks": "List the tasks",
         "stop-task": "Stop task",
-        "list-informations": "List informations",
+        "list-informations": "List information",
         "start-all-tasks": "Start all tasks",
         "get-module-info": "Get module info",
         "stop-all-tasks": "Stop all tasks",
@@ -133,7 +130,7 @@
         "get-name": "Get name"
     },
     "common": {
-        "required": "Beharrezkoa",
+        "required": "Required",
         "save": "Save",
         "work_in_progress": "Work in progress",
         "cancel": "Cancel",
@@ -156,6 +153,9 @@
         "installation_node": "Installation node",
         "node": "Node",
         "no_volumes": "No volumes"
+    },
+    "about": {
+        "title": "About"
     },
     "task": {
         "cannot_create_task": "Cannot create task {action}"
