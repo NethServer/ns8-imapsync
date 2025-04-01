@@ -23,6 +23,7 @@ buildah add "${container}" imapsync/ /
 buildah run "${container}" cp -vp /usr/bin/imapsync{,.orig}
 buildah run "${container}" patch -d /usr/bin -p1 < imapsync-sievedelivery2.patch
 buildah run "${container}" patch -d /usr/bin -p1 < imapsync-delete1older.patch
+buildah run "${container}" patch -d /usr/bin -p1 < imapsync-setflag1.patch
 # Commit the image
 buildah commit --rm "${container}" "${repobase}/${reponame}"
 

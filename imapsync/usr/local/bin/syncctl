@@ -15,6 +15,12 @@
 
 set -e
 
+# If stdout is not on a TTY, redirect stdout and stderr to cron's FDs
+if [ ! -t 1 ]; then
+    exec >/proc/1/fd/1
+    exec 2>/proc/1/fd/2
+fi
+
 if [[ $# -ne 2 ]];then
     echo "Usage: syncctl {start,status,stop,validate} username"
     exit 0
@@ -30,6 +36,16 @@ while IFS= read -r line; do
   # Export the variable
   export "${line?}"
 done < "/etc/imapsync/${task_id}.env"
+
+print_log_excerpt() {
+    local task_id
+    task_id=$1
+    awk -v taskid="${task_id}" \
+    -e '/^Messages transferred/ { tx=$4 }' \
+    -e '/^Exiting with return value/ { exitmsg=$0 }' \
+    -e 'END { printf("task %s: tx=%s, msg=%s\n", taskid, tx, exitmsg) }' \
+    "/etc/imapsync/${task_id}.log"
+}
 
 get_file_age_in_days() {
     local filename
@@ -62,11 +78,8 @@ if [[ "${action}" == "start" ]]; then
         gmail='--gmail1'
     fi
     if [[ -n "${FOLDER_INBOX}" ]] && [[ "${DELETE_REMOTE}" != "--delete1" ]]; then
-        # Prevent repeated transfer of the same message because the user
-        # or their Sieve filter moved/removed a message from INBOX.
-        # [ASSUMPTION] Using the IMAP \Recent flag assumes that the remote
-        # account is not accessed by other clients.
-        search1recent=1
+        # Transfer only messages without the \Seen flag.
+        sync_unseen=1
         maxage=
     fi
     if [[ -n "${FOLDER_INBOX}" ]] && [[ -n "${SIEVE_ENABLED}" ]]; then
@@ -86,10 +99,17 @@ if [[ "${action}" == "start" ]]; then
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
         ${FOLDER_INBOX} \
         ${sieve_enabled:+--sievedelivery2} \
-        ${search1recent:+--search1=NEW --nochecknoabletosearch --nocheckfoldersexist --nocheckselectable} \
-        --exclude '^Public$|^Shared$'"${exclude_regex}" > /proc/1/fd/1 2>&1
-        # FOLDER_INBOX must not be enquoted NethServer/dev#7296
-
+        ${sync_unseen:+--search1=UNSEEN --setflag1=Seen --noresyncflags} \
+        --exclude '^Public$|^Shared$'"${exclude_regex}" \
+        >"/etc/imapsync/${task_id}.log" || \
+    {
+        exit_code=$?
+        echo "task ${task_id}: imapsync error: ${exit_code}" 1>&2
+        print_log_excerpt "${task_id}" 1>&2
+        exit ${exit_code}
+    }
+    # print run summary
+    print_log_excerpt "${task_id}"
     # set the timestamp file to the current time
     echo ${FOLDERSYNCHRONIZATION} > "/etc/imapsync/${task_id}.timestamp"
     touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"
