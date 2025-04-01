@@ -109,7 +109,7 @@
         <span class="bx--label">
           {{ $t("tasks.synchronize_folders") }}
         </span>
-        <cv-radio-group vertical class="mg-bottom mg-left">
+        <cv-radio-group vertical class="mg-left mg-bottom-sm">
           <cv-radio-button
             :label="$t('tasks.synchronize_only_INBOX')"
             value="inbox"
@@ -117,6 +117,22 @@
             v-model="folderSynchronization"
             :disabled="loading.createTask"
           />
+        </cv-radio-group>
+        <NsToggle
+          v-if="folderSynchronization == 'inbox'"
+          class="mg-left mg-bottom"
+          :label="$t('tasks.sieve_enabled')"
+          v-model="sieveEnabled"
+          value="sieveEnabled"
+        >
+          <template slot="text-left"
+            >{{ $t("common.disabled") }}</template
+          >
+          <template slot="text-right"
+            >{{ $t("common.enabled") }}</template
+          >
+        </NsToggle>
+        <cv-radio-group vertical class="mg-bottom mg-left">
           <cv-radio-button
             :label="$t('tasks.syncronize_all')"
             value="all"
@@ -279,6 +295,7 @@ export default {
       deleteMsg: "no_delete",
       cron: "0",
       cronEnabled: false,
+      sieveEnabled: false,
       error: {
         enabled_mailboxes: "",
         createTask: "",
@@ -311,6 +328,7 @@ export default {
         this.deleteRemoteOlder = String(this.task.delete_remote_older);
         this.cron = this.task.cron;
         this.cronEnabled = this.task.cron_enabled;
+        this.sieveEnabled = this.task.sieve_enabled;
       } else {
         // hiding modal
         this.clearErrors();
@@ -332,6 +350,7 @@ export default {
       this.deleteRemoteOlder = "15";
       this.cron = "0";
       this.cronEnabled = false;
+      this.sieveEnabled = false;
     },
     validateConfigureModule() {
       this.clearErrors(this);
@@ -471,6 +490,7 @@ export default {
                 ? true
                 : false,
             delete_remote_older: Number(this.deleteRemoteOlder),
+            sieve_enabled: this.sieveEnabled,
             exclude: this.exclude
               .split("\n")
               .map((item) => item.trim())

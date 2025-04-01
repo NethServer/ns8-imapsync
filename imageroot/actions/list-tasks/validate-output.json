@@ -1,10 +1,10 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "get-configuration output",
-        "$id": "http://schema.nethserver.org/imapsync/list-task-output.json",
-        "description": "Get tasks configuration",
-        "examples": [
-            {
+    "title": "get-configuration output",
+    "$id": "http://schema.nethserver.org/imapsync/list-task-output.json",
+    "description": "Get tasks configuration",
+    "examples": [
+        {
             "enabled_mailboxes": [
                 {
                     "name": "administrator",
@@ -123,6 +123,10 @@
                     },
                     "delete_remote_older": {
                         "type": "integer"
+                    },
+                    "sieve_enabled": {
+                        "type": "boolean",
+                        "description": "Run user's Sieve filter"
                     },
                     "expunge_remote": {
                         "type": "string"

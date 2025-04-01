@@ -119,6 +119,10 @@
             "minimum": 0,
             "description": "Number of days the messages are retained on the remote server. 0 is for no retention."
         },
+        "sieve_enabled": {
+            "type": "boolean",
+            "description": "Run user's Sieve filter"
+        },
         "exclude": {
             "title": "exclude",
             "type": "string",

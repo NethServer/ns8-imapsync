@@ -90,8 +90,9 @@ else:
         data['remotepassword']=""
         #test if service is running 
         service_status = True if os.path.exists("imapsync/"+task_id+".pid") else False
-       
         data["service_running"]=service_status
+        # Sieve filter status
+        data["sieve_enabled"] = data.get("sieve_enabled", "") != "" # non-empty True, false otherwise
         user_properties.append(data)
     
     # Serialize the JSON read_fileect to a JSON-formatted string

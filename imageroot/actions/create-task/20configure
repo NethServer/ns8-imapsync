@@ -81,6 +81,11 @@ if foldersynchronization == "inbox":
 else:
     folder_inbox = ""
 
+# sieve switch
+sieve_enabled = ""
+if data.get("sieve_enabled", False):
+    sieve_enabled = "1"
+
 user_env = f"""
 TASK_ID={task_id}
 LOCALUSER={localuser}
@@ -92,6 +97,7 @@ DELETE_LOCAL={delete_local}
 DELETEFOLDER={delete_folder}
 EXCLUDE={exclude}
 DELETE_REMOTE={delete_remote}
+SIEVE_ENABLED={sieve_enabled}
 EXPUNGE_REMOTE={expunge_remote}
 CRON={cron}
 FOLDER_INBOX={folder_inbox}
