@@ -125,12 +125,8 @@
           v-model="sieveEnabled"
           value="sieveEnabled"
         >
-          <template slot="text-left"
-            >{{ $t("common.disabled") }}</template
-          >
-          <template slot="text-right"
-            >{{ $t("common.enabled") }}</template
-          >
+          <template slot="text-left">{{ $t("common.disabled") }}</template>
+          <template slot="text-right">{{ $t("common.enabled") }}</template>
         </NsToggle>
         <cv-radio-group vertical class="mg-bottom mg-left">
           <cv-radio-button
@@ -489,7 +485,10 @@ export default {
               this.deleteMsg == "delete_remote_older"
                 ? true
                 : false,
-            delete_remote_older: Number(this.deleteRemoteOlder),
+            delete_remote_older:
+              this.deleteMsg == "delete_remote_older"
+                ? Number(this.deleteRemoteOlder)
+                : 0,
             sieve_enabled: this.sieveEnabled,
             exclude: this.exclude
               .split("\n")
