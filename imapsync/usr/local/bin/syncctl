@@ -77,13 +77,12 @@ if [[ "${action}" == "start" ]]; then
     if [[ "${REMOTEHOSTNAME}" == 'imap.gmail.com' ]]; then
         gmail='--gmail1'
     fi
-    if [[ -n "${FOLDER_INBOX}" ]] && [[ "${DELETE_REMOTE}" != "--delete1" ]]; then
+    if [[ -n "${FOLDER_INBOX}" ]] ; then
         # Transfer only messages without the \Seen flag.
         sync_unseen=1
         maxage=
-    fi
-    if [[ -n "${FOLDER_INBOX}" ]] && [[ -n "${SIEVE_ENABLED}" ]]; then
-        sieve_enabled=1
+        # Run Sieve filter if wanted
+        sieve_enabled=${SIEVE_ENABLED:+1}
     fi
     # retrieve unixtimestamp
     timestamp="$(date +%s)"
