@@ -15,7 +15,6 @@
     "tasks": {
         "col_remotehostname": "IMAP-Server",
         "edit": "bearbeiten",
-        "minutes": "Minuten",
         "no_deletion": "kein löschen",
         "local_account_host2Sizes": "Größe alles Nachrichten im lokalen Konto",
         "start_by^_and_end_by$": "Für exakte Übereinstimmung mit ^ Beginn und mit $ das Ende markieren",
@@ -23,7 +22,6 @@
         "title_tooltip": "Imapsync zur Synchronisation von lokale und entfernte IMAP-Konten",
         "confirm_delete_task_message": "Diese Aufgabe wirklich löschen?",
         "confirm_create_task_message": "Einstellungen bestätigen und Aufgaben starten",
-        "disabled": "deaktiviert",
         "choose_local_user": "Lokalen Benutzer zur Synchronisation der Nachrichten auswählen",
         "synchronize_only_INBOX": "Nur Posteingang synchronisieren",
         "remotepassword": "fernes Kennwort",
@@ -46,7 +44,6 @@
         "something_wrong_cannot_list_informations": "Etwas ist schief gegangen, ferne Konten und Konto-Informationen können nicht aufgelistet werden",
         "select_your_cron": "Häufigkeit der Ausführung wählen",
         "none": "ohne Verschlüsselung",
-        "enabled": "aktiviert",
         "delete_on_local": "Nachrichten auch lokal löschen wenn sie auf dem fernen Konto nicht mehr existieren (1:1 Spiegelung)",
         "no_more_task": "keine weiteren Aufgaben",
         "no_tasks": "keine Aufgaben konfiguriert",
@@ -86,13 +83,21 @@
         "STARTTLS_not_allowed_use_IMAPS": "STARTTLS nicht zugelassen vom Anbieter",
         "stop_all": "alle Aufgaben stoppen",
         "local_account_host2Folders": "Ordner des lokalen Konto",
-        "synchronize_folders_explanation": "Es besteht die Möglichkeit der vollen Synchronisation, nur Posteingang oder Ausnahme bestimmter Ordner",
         "no_email_server": "kein E-Mail-Server, wechseln zu Einstellungen",
         "bad_user_credentials": "Zugangsdaten prüfen, der Server hat die Verbindung abgelehnt",
         "exclude_folder": "Ordner-Ausnahmen",
         "local_user": "lokaler Benutzer",
         "select_your_encryption": "Verschlüsselung auswählen",
-        "unchanged_password_placeholder": "Unchanged"
+        "unchanged_password_placeholder": "Unchanged",
+        "remotehostname_placeholder": "E.g. imap.example.org",
+        "cron_interval_minutes": "minutes",
+        "cron_disabled": "Not scheduled, manual execution only",
+        "cron_enabled": "Run at a fixed interval (in minutes)",
+        "delete_remote_older_helper": "Number of days",
+        "delete_remote_older_error": "Must be a number between 1 and 99999",
+        "link_imapsync_manual_page_text": "Imapsync manual",
+        "delete_remote_older": "Delete messages older than a specified number of days",
+        "sieve_enabled": "Sieve filter"
     },
     "error": {
         "403": "Vorgang nicht autorisiert",
@@ -129,7 +134,9 @@
         "save": "speichern",
         "work_in_progress": "In Bearbeitung",
         "cancel": "abbrechen",
-        "processing": "Verarbeitung läuft..."
+        "processing": "Verarbeitung läuft...",
+        "disabled": "Disabled",
+        "enabled": "Enabled"
     },
     "status": {
         "created": "Erstellt",
