@@ -237,6 +237,7 @@ import {
   IconService,
   TaskService,
   DateTimeService,
+  PageTitleService,
 } from "@nethserver/ns8-ui-lib";
 import to from "await-to-js";
 import ConfirmDeleteTask from "@/components/ConfirmDeleteTask";
@@ -260,6 +261,7 @@ export default {
     IconService,
     TaskService,
     DateTimeService,
+    PageTitleService,
   ],
   pageTitle() {
     return this.$t("tasks.title") + " - " + this.appName;
