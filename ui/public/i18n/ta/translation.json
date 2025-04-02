@@ -93,7 +93,7 @@
         "cron_disabled": "Not scheduled, manual execution only",
         "cron_enabled": "Run at a fixed interval (in minutes)",
         "delete_remote_older_error": "Must be a number between 1 and 99999",
-        "cron_interval_minutes": "minutes",
+        "minutes": "minutes",
         "delete_remote_older_helper": "Number of days",
         "link_imapsync_manual_page_text": "Imapsync manual",
         "delete_remote_older": "Delete messages older than a specified number of days",

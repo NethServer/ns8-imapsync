@@ -19,7 +19,7 @@
         "delete": "Delete",
         "remotehostname": "IMAP server",
         "delete_task": "Delete task",
-        "cron_interval_minutes": "minutes",
+        "minutes": "minutes",
         "SSL_encryption_error": "Verify the TLS encryption, IMAPS or STARTTLS",
         "start": "Start",
         "synchronize_folders": "Folder synchronization",

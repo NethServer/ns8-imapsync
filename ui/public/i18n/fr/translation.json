@@ -79,7 +79,7 @@
         "remotehostname_placeholder": "E.g. imap.example.org",
         "cron_disabled": "Not scheduled, manual execution only",
         "cron_enabled": "Run at a fixed interval (in minutes)",
-        "cron_interval_minutes": "minutes",
+        "minutes": "minutes",
         "delete_remote_older_helper": "Number of days",
         "delete_remote_older_error": "Must be a number between 1 and 99999",
         "link_imapsync_manual_page_text": "Imapsync manual",

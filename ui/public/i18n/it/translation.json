@@ -151,7 +151,7 @@
         "select_your_encryption": "Selezionare la crittografia",
         "unchanged_password_placeholder": "Invariata",
         "remotehostname_placeholder": "Es. imap.example.org",
-        "cron_interval_minutes": "minuti",
+        "minutes": "minuti",
         "cron_disabled": "Non programmato, solo esecuzione manuale",
         "delete_remote_older_helper": "Numero di giorni",
         "delete_remote_older_error": "Deve essere un numero tra 1 e 99999",

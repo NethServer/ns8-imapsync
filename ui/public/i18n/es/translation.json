@@ -76,7 +76,7 @@
         "local_user": "Usuario local",
         "select_your_encryption": "Seleccionar cifrado",
         "unchanged_password_placeholder": "Unchanged",
-        "cron_interval_minutes": "minutes",
+        "minutes": "minutes",
         "cron_disabled": "Not scheduled, manual execution only",
         "delete_remote_older_helper": "Number of days",
         "link_imapsync_manual_page_text": "Imapsync manual",

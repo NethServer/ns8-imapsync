@@ -235,7 +235,7 @@
           :isUnlimited="!cronEnabled"
           :invalidMessage="$t(error.cron)"
           :disabled="loading.createTask"
-          :unitLabel="$t('tasks.cron_interval_minutes')"
+          :unitLabel="$t('tasks.minutes')"
           @unlimited="cronEnabled = !$event"
           class="mg-bottom-xlg"
         />

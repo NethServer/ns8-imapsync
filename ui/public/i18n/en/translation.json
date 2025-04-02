@@ -87,7 +87,7 @@
         "choose_local_user": "Choose a local user to sync the messages",
         "choose_the_user_to_sync": "Choose a user managed by your email server to synchronize the remote messages",
         "hour": "hour",
-        "cron_interval_minutes": "minutes",
+        "minutes": "minutes",
         "no_cron": "Not scheduled",
         "select_your_cron": "Task frequency",
         "set_when_you_want_the_task_start": "Select when to start your task",
