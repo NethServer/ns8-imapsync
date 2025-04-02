@@ -5,8 +5,8 @@
         "work_in_progress": "In lavorazione",
         "save": "Salva",
         "cancel": "Annulla",
-        "disabled": "Disabled",
-        "enabled": "Enabled"
+        "disabled": "Disabilitato",
+        "enabled": "Abilitato"
     },
     "status": {
         "node": "Nodo",
@@ -109,7 +109,7 @@
         "remove_mails": "Eliminazione messaggi dal server remoto",
         "trashsync_tips": "Sincronizza i messaggi e le cartelle eliminati sul server remoto",
         "col_task_id": "ID Task",
-        "stopped": "Terminate",
+        "stopped": "Interrotto",
         "write_one_exclusion_per_line": "Scrivere una esclusione per linea",
         "remoteport": "Porta TCP IMAP",
         "hour": "ora",
@@ -124,7 +124,7 @@
         "create_task": "Crea task",
         "col_remoteusername": "Utente remoto",
         "localuser_string_gte": "Il nome utente locale non può essere vuoto",
-        "syncronize_with_exclusion": "Tutte le cartelle tranne quelle specificate",
+        "syncronize_with_exclusion": "Tutti tranne selezionati",
         "local_account_host2Sizes": "Dimensioni messaggi su account locale",
         "compare_accounts": "Confronta account locali e remoti",
         "every_minutes": "Ogni {num} minuti",
@@ -158,6 +158,6 @@
         "link_imapsync_manual_page_text": "Manuale Imapsync",
         "delete_remote_older": "Eliminare i messaggi più vecchi di un certo numero di giorni",
         "cron_enabled": "Esegui ad intervalli fissi (in minuti)",
-        "sieve_enabled": "Sieve filter"
+        "sieve_enabled": "Filtro Sieve"
     }
 }
