@@ -1,7 +1,7 @@
 {
     "settings": {
         "configuring": "konfiguriere",
-        "mail_server_fqdn": "E-Mail Server",
+        "mail_server_fqdn": "Mail-Server",
         "configure_instance": "{instance} konfigurieren",
         "instance_configuration": "Imapsync konfigurieren",
         "choose_the_mail_server_to_use": "Mailserver wählen von dem Benutzer-Postfächer abgerufen werden",
@@ -89,7 +89,7 @@
         "local_user": "lokaler Benutzer",
         "select_your_encryption": "Verschlüsselung auswählen",
         "unchanged_password_placeholder": "Unchanged",
-        "remotehostname_placeholder": "E.g. imap.example.org",
+        "remotehostname_placeholder": "Z.B. imap.example.org",
         "minutes": "minutes",
         "cron_disabled": "Not scheduled, manual execution only",
         "cron_enabled": "Run at a fixed interval (in minutes)",
@@ -135,14 +135,14 @@
         "work_in_progress": "In Bearbeitung",
         "cancel": "abbrechen",
         "processing": "Verarbeitung läuft...",
-        "disabled": "Disabled",
-        "enabled": "Enabled"
+        "disabled": "Deaktiviert",
+        "enabled": "Aktiviert"
     },
     "status": {
         "created": "Erstellt",
         "size": "Größe",
         "name": "Name",
-        "no_images": "Keine Abbilder",
+        "no_images": "keine Abbilder",
         "app_volumes": "App Volumen | App Volumen",
         "services": "Dienst | Dienste",
         "app_images": "App Abbild | App Abbilder",
