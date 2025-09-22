@@ -125,11 +125,11 @@
                   :key="`${rowIndex}`"
                   :value="`${rowIndex}`"
                 >
-                  <cv-data-table-row>
-                    <div class="mg-top mg-left gray">
+                  <cv-data-table-cell>
+                    <div>
                       {{ row.localuser }}
                     </div>
-                  </cv-data-table-row>
+                  </cv-data-table-cell>
                   <cv-data-table-cell>
                     {{ row.remoteusername }}
                   </cv-data-table-cell>
@@ -697,17 +697,11 @@ export default {
   display: flex;
   justify-content: space-between;
 }
-.mg-top {
-  margin-top: 1em;
-}
 .mg-bottom {
   margin-top: 1em;
 }
 .mg-left {
   margin-left: 1em;
-}
-.gray {
-  color: #525252;
 }
 .kebab-height {
   height: 3rem;
