@@ -28,6 +28,7 @@
           </cv-column>
         </cv-row>
         <NsComboBox
+          :key="NsComboKey"
           v-if="!isEdit"
           :options="enabled_mailboxes"
           v-model.trim="localUser"
@@ -280,6 +281,7 @@ export default {
       loading: {
         createTask: false,
       },
+      NsComboKey: 0,
       localUser: "",
       remoteUsername: "",
       remotePassword: "",
@@ -312,19 +314,26 @@ export default {
     isShown: function () {
       if (this.isShown) {
         this.clearErrors();
-        this.localUser = this.task.localuser;
-        this.remoteUsername = this.task.remoteusername;
-        this.remotePassword = "";
-        this.remoteHostname = this.task.remotehostname;
-        this.remotePort = this.task.remoteport;
-        this.security = this.task.security;
-        this.folderSynchronization = this.task.foldersynchronization;
-        this.exclude = this.task.exclude;
-        this.deleteMsg = this.task.delete;
-        this.deleteRemoteOlder = String(this.task.delete_remote_older);
-        this.cron = this.task.cron;
-        this.cronEnabled = this.task.cron_enabled;
-        this.sieveEnabled = this.task.sieve_enabled;
+        if (this.isEdit && this.task) {
+          // editing existing task
+          this.localUser = this.task.localuser;
+          this.remoteUsername = this.task.remoteusername;
+          this.remotePassword = "";
+          this.remoteHostname = this.task.remotehostname;
+          this.remotePort = this.task.remoteport;
+          this.security = this.task.security;
+          this.folderSynchronization = this.task.foldersynchronization;
+          this.exclude = this.task.exclude;
+          this.deleteMsg = this.task.delete;
+          this.deleteRemoteOlder = String(this.task.delete_remote_older);
+          this.cron = this.task.cron;
+          this.cronEnabled = this.task.cron_enabled;
+          this.sieveEnabled = this.task.sieve_enabled;
+        } else {
+          // creating new task
+          this.NsComboKey++; // to reset NsComboBox
+          this.clearFields();
+        }
       } else {
         // hiding modal
         this.clearErrors();
