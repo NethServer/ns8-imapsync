@@ -29,6 +29,7 @@
         </cv-row>
         <NsComboBox
           v-if="!isEdit"
+          :light="true"
           :options="enabled_mailboxes"
           v-model.trim="localUser"
           :autoFilter="true"
