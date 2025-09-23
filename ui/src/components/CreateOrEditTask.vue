@@ -330,7 +330,7 @@ export default {
         } else {
           // creating new task
           this.clearFields();
-          this.$refs.localuser.resetValue(); // to reset NsComboBox
+          this.$refs.localuser.clearValue(); // to reset NsComboBox
         }
       } else {
         // hiding modal
