@@ -329,8 +329,8 @@ export default {
           this.sieveEnabled = this.task.sieve_enabled;
         } else {
           // creating new task
-          this.$refs.localuser.resetValue(); // to reset NsComboBox
           this.clearFields();
+          this.$refs.localuser.resetValue(); // to reset NsComboBox
         }
       } else {
         // hiding modal
