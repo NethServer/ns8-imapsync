@@ -28,7 +28,6 @@
           </cv-column>
         </cv-row>
         <NsComboBox
-          :key="NsComboKey"
           v-if="!isEdit"
           :options="enabled_mailboxes"
           v-model.trim="localUser"
@@ -281,7 +280,6 @@ export default {
       loading: {
         createTask: false,
       },
-      NsComboKey: 0,
       localUser: "",
       remoteUsername: "",
       remotePassword: "",
@@ -331,7 +329,7 @@ export default {
           this.sieveEnabled = this.task.sieve_enabled;
         } else {
           // creating new task
-          this.NsComboKey++; // to reset NsComboBox
+          this.$refs.localuser.resetValue(); // to reset NsComboBox
           this.clearFields();
         }
       } else {
