@@ -314,6 +314,7 @@ export default {
       if (this.isShown) {
         this.clearErrors();
         this.clearFields();
+        this.$refs.localuser.clearValue(); // to reset NsComboBox
         this.localUser = this.task.localuser;
         this.remoteUsername = this.task.remoteusername;
         this.remotePassword = "";
@@ -327,9 +328,6 @@ export default {
         this.cron = this.task.cron;
         this.cronEnabled = this.task.cron_enabled;
         this.sieveEnabled = this.task.sieve_enabled;
-        if (!this.isEdit) {
-          this.$refs.localuser.clearValue(); // to reset NsComboBox
-        }
       } else {
         // hiding modal
         this.clearErrors();
