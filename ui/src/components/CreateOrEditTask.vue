@@ -313,26 +313,21 @@ export default {
     isShown: function () {
       if (this.isShown) {
         this.clearErrors();
-        if (this.isEdit && this.task) {
-          // editing existing task
-          this.localUser = this.task.localuser;
-          this.remoteUsername = this.task.remoteusername;
-          this.remotePassword = "";
-          this.remoteHostname = this.task.remotehostname;
-          this.remotePort = this.task.remoteport;
-          this.security = this.task.security;
-          this.folderSynchronization = this.task.foldersynchronization;
-          this.exclude = this.task.exclude;
-          this.deleteMsg = this.task.delete;
-          this.deleteRemoteOlder = String(this.task.delete_remote_older);
-          this.cron = this.task.cron;
-          this.cronEnabled = this.task.cron_enabled;
-          this.sieveEnabled = this.task.sieve_enabled;
-        } else {
-          // creating new task
-          this.clearFields();
-          this.$refs.localuser.clearValue(); // to reset NsComboBox
-        }
+        this.clearFields();
+        this.$refs.localuser.clearValue(); // to reset NsComboBox
+        this.localUser = this.task.localuser;
+        this.remoteUsername = this.task.remoteusername;
+        this.remotePassword = "";
+        this.remoteHostname = this.task.remotehostname;
+        this.remotePort = this.task.remoteport;
+        this.security = this.task.security;
+        this.folderSynchronization = this.task.foldersynchronization;
+        this.exclude = this.task.exclude;
+        this.deleteMsg = this.task.delete;
+        this.deleteRemoteOlder = String(this.task.delete_remote_older);
+        this.cron = this.task.cron;
+        this.cronEnabled = this.task.cron_enabled;
+        this.sieveEnabled = this.task.sieve_enabled;
       } else {
         // hiding modal
         this.clearErrors();
