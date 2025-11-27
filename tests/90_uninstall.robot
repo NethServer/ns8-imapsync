@@ -17,7 +17,7 @@ Remove account providers
     [Tags]    udom    remove
     Remove LDAP user domain
 
-Check if piler is removed correctly
+Check if imapsync is removed correctly
     ${rc} =    Execute Command    remove-module --no-preserve ${imapsync_module_id}
     ...    return_rc=True  return_stdout=False
     Should Be Equal As Integers    ${rc}  0
