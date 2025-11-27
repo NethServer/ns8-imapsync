@@ -90,7 +90,7 @@ Check the imap folder informations of u2
     Should Be Equal As Integers    ${ocfg['host1Sizes']}      0
     Should Be Equal As Integers    ${ocfg['host2Folders']}    3
     Should Be Equal As Integers    ${ocfg['host2Messages']}   5
-    Should Be True    int(${ocfg['host2Sizes']}) < 8000 # the value can change
+    Should Be True    7000 <= int(${ocfg['host2Sizes']}) < 8000 # the value can change
     Should Be True                 ${ocfg['status']}
 
 Check if imapsync can remove a task 
