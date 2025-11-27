@@ -26,6 +26,13 @@ Check if imapsync can be configured
     ...    return_rc=True  return_stdout=False
     Should Be Equal As Integers    ${rc}  0
 
+check if we can retrieve get-configuration
+    ${ocfg} =   Run task    module/${imapsync_module_id}/get-configuration    {}
+    ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
+    Should Be Equal    ${ocfg['mail_host']}     ${mail_server_ip}
+    Should Be Equal    ${ocfg['mail_server']}   ${mail_server_uuid}
+    Should Not Be Empty    ${ocfg['mail_server_URL'][0]['value']}
+
 Send 5 emails to the mail server: from u1 to u3
     Put File    ${CURDIR}/test-msa.sh    /tmp/test-msa.sh
     ${mail_server} =    Set Variable    smtp://127.0.0.1:10587
@@ -45,6 +52,21 @@ Check if imapsync can create a task to fetch emails from u3 to U2
     ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "5m","delete_local": false,"delete_remote": true,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "${mail_server_ip}","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "28ofi1"}'
     ...    return_rc=True  return_stdout=False
     Should Be Equal As Integers    ${rc}  0
+
+Verify list-tasks returns what create-task sent
+    ${ocfg}=    Run task    module/${imapsync_module_id}/list-tasks    {}
+    ${props}=    Set Variable    ${ocfg['user_properties'][0]}
+    Should Be Equal    ${props['cron']}    5m
+    Should Not Be True    ${props['delete_local']}
+    Should Be True    ${props['delete_remote']}
+    Should Be Equal As Integers    ${props['delete_remote_older']}    0
+    Should Be Equal    ${props['foldersynchronization']}    all
+    Should Be Equal    ${props['localuser']}    u2
+    Should Be Equal    ${props['remoteport']}    143
+    Should Be Equal    ${props['remoteusername']}    u3
+    Should Be Equal    ${props['security']}    tls
+    Should Not Be True    ${props['sieve_enabled']}
+    Should Be Equal    ${props['task_id']}    28ofi1
 
 Verify if imapsync has distributed the 5 emails to u2
     ${success} =    Set Variable    False
@@ -98,3 +120,8 @@ Check if imapsync can remove a task
     ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"localuser": "u2","task_id": "28ofi1"}'
     ...    return_rc=True  return_stdout=False
     Should Be Equal As Integers    ${rc}  0
+
+Verify list-tasks is empty after delete-task
+    ${ocfg}=    Run task    module/${imapsync_module_id}/list-tasks    {}
+    Log    ${ocfg}    DEBUG
+    Should Be Empty    ${ocfg['user_properties']}
