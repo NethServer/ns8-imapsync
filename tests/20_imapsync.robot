@@ -42,7 +42,7 @@ Send 5 emails to the mail server: from u1 to u3
 
 Check if imapsync can create a task to fetch emails from u3 to U2
     ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
-    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "","delete_local": false,"delete_remote": false,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2@domain.test","remotehostname": "${mail_server_ip}","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3@domain.test","security": "tls","sieve_enabled": false,"task_id": "28ofi1"}'
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "5m","delete_local": false,"delete_remote": true,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "${mail_server_ip}","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "28ofi1"}'
     ...    return_rc=True  return_stdout=False
     Should Be Equal As Integers    ${rc}  0
 
@@ -63,3 +63,38 @@ Verify if imapsync has distributed the 5 emails to u2
         Sleep    1s
     END
     Should Be True    ${success}    the counter is equal to 5 emails received
+
+Verify if imapsync has removed the 5 emails to u3
+    ${success} =    Set Variable    False
+    FOR    ${i}    IN RANGE    5
+        ${dovecot_out}    ${dovecot_err}    ${dovecot_rc} =    Execute Command
+        ...    runagent -m ${MID} podman exec dovecot ls u3/Maildir/cur | wc -l
+        ...    return_rc=True    return_stdout=True    return_stderr=True
+
+        Should Be Equal As Integers    ${dovecot_rc}    0
+
+        ${dovecot_clean} =    Evaluate    str(${dovecot_out}).strip()
+        Log    Tentative ${i}: rcvd=${dovecot_clean}
+
+        Run Keyword If    int(${dovecot_clean}) == 0    Set Test Variable    ${success}    True
+        Run Keyword If    ${success}    Exit For Loop
+        Sleep    1s
+    END
+    Should Be True    ${success}    the counter is equal to 0 emails
+
+Check the imap folder informations of u2
+    ${ocfg} =  Run task    module/${imapsync_module_id}/list-informations    {"localuser": "u2","task_id": "28ofi1"}
+    # Check expected sync results
+    Should Be Equal As Integers    ${ocfg['host1Folders']}    3
+    Should Be Equal As Integers    ${ocfg['host1Messages']}   0
+    Should Be Equal As Integers    ${ocfg['host1Sizes']}      0
+    Should Be Equal As Integers    ${ocfg['host2Folders']}    3
+    Should Be Equal As Integers    ${ocfg['host2Messages']}   5
+    Should Be True    int(${ocfg['host2Sizes']}) < 8000 # the value can change
+    Should Be True                 ${ocfg['status']}
+
+Check if imapsync can remove a task 
+    ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"localuser": "u2","task_id": "28ofi1"}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
