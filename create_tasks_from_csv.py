@@ -9,7 +9,7 @@ import subprocess
 import string
 import random
 import sys
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 
 # Configuration constants
@@ -57,8 +57,8 @@ def generate_random_id(length: int = 6) -> str:
     return ''.join(random.choices(chars, k=length)).lower()
 
 
-def validate_csv_columns(csv_file: str, delimiter: str) -> Tuple[bool, Optional[int], str]:
-    """Validate CSV has all required columns and return row count"""
+def validate_csv_columns(csv_file: str, delimiter: str) -> Tuple[bool, Optional[List[dict]], str]:
+    """Validate CSV has all required columns and return parsed rows"""
     try:
         with open(csv_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f, delimiter=delimiter)
@@ -81,9 +81,10 @@ def validate_csv_columns(csv_file: str, delimiter: str) -> Tuple[bool, Optional[
                 return False, None, delimiter
             
             print(f"✓ All {len(REQUIRED_COLUMNS)} required columns present")
-            row_count = sum(1 for _ in reader)
-            print(f"✓ Found {row_count} data row(s)")
-            return True, row_count, delimiter
+            # Read all rows into memory for single-pass processing
+            rows = list(reader)
+            print(f"✓ Found {len(rows)} data row(s)")
+            return True, rows, delimiter
     
     except FileNotFoundError:
         print(f"✗ Error: File '{csv_file}' not found")
@@ -223,7 +224,7 @@ def main():
     # Validate CSV
     print(f"Validating CSV file: {csv_file}")
     delimiter = detect_delimiter(csv_file)
-    is_valid, row_count, delimiter = validate_csv_columns(csv_file, delimiter)
+    is_valid, rows, delimiter = validate_csv_columns(csv_file, delimiter)
     
     if not is_valid:
         sys.exit(1)
@@ -234,31 +235,29 @@ def main():
     
     # Process tasks
     print(f"\n📦 Starting task creation with module: {module_id}")
-    print(f"   Processing {row_count} user(s)...\n")
+    print(f"   Processing {len(rows)} user(s)...\n")
     
     successful = 0
     failed = 0
     
     try:
-        with open(csv_file, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f, delimiter=delimiter)
-            for row_num, row in enumerate(reader, start=2):
-                try:
-                    task_data = parse_csv_row(row)
-                    if create_task(module_id, task_data):
-                        successful += 1
-                    else:
-                        failed += 1
-                except KeyError as e:
-                    print(f"✗ Missing field {e} on line {row_num}")
+        for row_num, row in enumerate(rows, start=2):
+            try:
+                task_data = parse_csv_row(row)
+                if create_task(module_id, task_data):
+                    successful += 1
+                else:
                     failed += 1
-                except ValueError as e:
-                    print(f"✗ Invalid value on line {row_num}: {str(e)}")
-                    failed += 1
-                except Exception as e:
-                    print(f"✗ Unexpected error on line {row_num}: {str(e)}")
-                    failed += 1
-                print()
+            except KeyError as e:
+                print(f"✗ Missing field {e} on line {row_num}")
+                failed += 1
+            except ValueError as e:
+                print(f"✗ Invalid value on line {row_num}: {str(e)}")
+                failed += 1
+            except Exception as e:
+                print(f"✗ Unexpected error on line {row_num}: {str(e)}")
+                failed += 1
+            print()
         
         # Summary
         print("=" * 70)
@@ -268,7 +267,7 @@ def main():
         sys.exit(1 if failed > 0 else 0)
     
     except Exception as e:
-        print(f"✗ Error reading CSV: {str(e)}")
+        print(f"✗ Error processing rows: {str(e)}")
         sys.exit(1)
 
 
