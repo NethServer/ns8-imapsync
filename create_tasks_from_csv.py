@@ -249,8 +249,14 @@ def main():
                         successful += 1
                     else:
                         failed += 1
+                except KeyError as e:
+                    print(f"✗ Missing field {e} on line {row_num}")
+                    failed += 1
+                except ValueError as e:
+                    print(f"✗ Invalid value on line {row_num}: {str(e)}")
+                    failed += 1
                 except Exception as e:
-                    print(f"✗ Error on line {row_num}: {str(e)}")
+                    print(f"✗ Unexpected error on line {row_num}: {str(e)}")
                     failed += 1
                 print()
         
