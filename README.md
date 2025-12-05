@@ -303,6 +303,110 @@ podman exec -ti imapsync /usr/local/bin/syncctl stop foo_a1j44r
 podman exec -ti imapsync /usr/local/bin/syncctl status foo_a1j44r
 ```
 
+## Bulk import tasks from CSV
+
+Create multiple synchronization tasks at once using a CSV file with the `create_tasks_from_csv. py` script.
+
+### CSV File Format
+
+The CSV file must contain a header row with these 6 required columns (semicolon-delimited):
+
+```
+localusername;remoteusername;remotepassword;remotehostname;remoteport;security
+pansy.dumbledore5;user1@domain.com;"enquotedPasswordIfSeparatorInside";smtp.domain.com;993;ssl
+lavender.umbridge7;user2@domain.com;"enquotedPasswordIfSeparatorInside";smtp.domain.com;993;ssl
+dolores.slughorn3;user3@domain.com;"enquotedPasswordIfSeparatorInside";smtp.domain.com;993;ssl
+```
+
+**Required columns:**
+- `localusername` – Local user account name
+- `remoteusername` – Remote IMAP account username
+- `remotepassword` – Remote IMAP account password
+- `remotehostname` – Remote IMAP server hostname
+- `remoteport` – Remote IMAP server port (e.g., 993, 143)
+- `security` – Security protocol: `ssl`, `tls`, or empty for no security
+
+Column order does matter.  The script auto-detects the delimiter (`;`, `,`, `|`, or tab).
+
+### Usage
+
+**Validate CSV format before creating tasks:**
+
+```bash
+python3 create_tasks_from_csv.py -c imapsync1 users. csv
+```
+
+**Create all tasks from CSV:**
+
+```bash
+python3 create_tasks_from_csv.py imapsync1 users.csv
+```
+
+**Display help:**
+
+```bash
+python3 create_tasks_from_csv.py -h
+```
+
+### Arguments
+
+- `module_id` – The imapsync module ID (e.g., `imapsync1`, `imapsync2`)
+- `csv_file` – Path to the CSV file with user data
+
+### Options
+
+- `-c, --check` – Validate CSV format without creating tasks
+- `-h, --help` – Display help message
+
+### Features
+
+- Automatically detects CSV delimiter (`;`, `,`, `|`, tab)
+- Validates all 6 required columns are present
+- Generates a unique random 6-character task ID (lowercase) for each user
+- Auto-fills optional fields with sensible defaults:
+  - `cron`: empty (no scheduling)
+  - `delete_local`: `false`
+  - `delete_remote`: `false`
+  - `delete_remote_older`: `0`
+  - `exclude`: empty
+  - `foldersynchronization`: `all`
+  - `sieve_enabled`: `false`
+- Calls the API endpoint `module/<module_id>/create-task` for each user
+- Displays progress and summary of successful/failed creations
+
+### Example
+
+Create 3 synchronization tasks from a CSV file:
+
+```bash
+$ python3 create_tasks_from_csv.py imapsync1 users.csv
+
+Validating CSV file: users.csv
+
+📋 CSV Column Validation:
+   Delimiter detected: ';'
+   Mode: WITH header row
+   Found 6 column(s): localusername, remotehostname, remotepassword, remoteport, remoteusername, security
+✓ All 6 required columns present
+✓ Found 3 data row(s)
+
+📦 Starting task creation with module: imapsync1
+   Processing 3 user(s)... 
+
+Creating task for pansy.dumbledore5 (ID: a1b2c3)...
+✓ Success: pansy.dumbledore5
+
+Creating task for lavender.umbridge7 (ID: d4e5f6)...
+✓ Success: lavender.umbridge7
+
+Creating task for dolores.slughorn3 (ID: g7h8i9)... 
+✓ Success: dolores.slughorn3
+
+======================================================================
+📊 Summary: 3 successful, 0 failed
+======================================================================
+```
+
 ## Uninstall
 
 To uninstall the instance:
