@@ -89,7 +89,7 @@ def validate_csv_columns(csv_file: str, delimiter: str) -> Tuple[bool, Optional[
         print(f"✗ Error: File '{csv_file}' not found")
         return False, None, delimiter
     except Exception as e:
-        print(f"✗ Error reading CSV: {str(e)}")
+        print(f"✗ Error reading CSV ({type(e).__name__}): {str(e)}")
         return False, None, delimiter
 
 
