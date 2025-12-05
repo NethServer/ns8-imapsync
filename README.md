@@ -385,7 +385,6 @@ Validating CSV file: users.csv
 
 📋 CSV Column Validation:
    Delimiter detected: ';'
-   Mode: WITH header row
    Found 6 column(s): localusername, remotehostname, remotepassword, remoteport, remoteusername, security
 ✓ All 6 required columns present
 ✓ Found 3 data row(s)
