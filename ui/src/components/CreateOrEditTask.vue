@@ -314,7 +314,9 @@ export default {
       if (this.isShown) {
         this.clearErrors();
         this.clearFields();
-        this.$refs.localuser.clearValue(); // to reset NsComboBox
+        if (!this.isEdit && this.$refs.localuser) {
+          this.$refs.localuser.clearValue(); // to reset NsComboBox
+        }
         this.localUser = this.task.localuser;
         this.remoteUsername = this.task.remoteusername;
         this.remotePassword = "";
