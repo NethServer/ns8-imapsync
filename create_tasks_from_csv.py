@@ -98,10 +98,17 @@ def parse_csv_row(row: dict) -> dict:
     task_data = DEFAULT_TASK_DATA.copy()
     task_data['task_id'] = generate_random_id()
     
+    # Validate that all required fields are present and non-empty
+    missing_fields = []
+    for csv_key in REQUIRED_COLUMNS:
+        if csv_key not in row or not row[csv_key] or not row[csv_key].strip():
+            missing_fields.append(csv_key)
+    
+    if missing_fields:
+        raise ValueError(f"Required field(s) missing or empty: {', '.join(sorted(missing_fields))}")
+    
+    # Map CSV columns to task data fields
     for csv_key, json_key in COLUMN_MAPPING.items():
-        if csv_key not in row or not row[csv_key]:
-            continue
-        
         value = row[csv_key]
         if json_key == 'remoteport':
             try:
