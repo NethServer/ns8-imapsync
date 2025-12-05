@@ -101,7 +101,8 @@ def parse_csv_row(row: dict) -> dict:
     # Validate that all required fields are present and non-empty
     missing_fields = []
     for csv_key in REQUIRED_COLUMNS:
-        if csv_key not in row or not row[csv_key] or not row[csv_key].strip():
+        value = row.get(csv_key)
+        if not value or (isinstance(value, str) and not value.strip()):
             missing_fields.append(csv_key)
     
     if missing_fields:
@@ -109,7 +110,10 @@ def parse_csv_row(row: dict) -> dict:
     
     # Map CSV columns to task data fields
     for csv_key, json_key in COLUMN_MAPPING.items():
-        value = row[csv_key]
+        value = row.get(csv_key, '')
+        if not value:
+            continue  # Skip if field doesn't exist (shouldn't happen after validation)
+            
         if json_key == 'remoteport':
             try:
                 task_data[json_key] = int(value)
