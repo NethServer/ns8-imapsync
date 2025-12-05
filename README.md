@@ -305,7 +305,7 @@ podman exec -ti imapsync /usr/local/bin/syncctl status foo_a1j44r
 
 ## Bulk import tasks from CSV
 
-Create multiple synchronization tasks at once using a CSV file with the `create_tasks_from_csv. py` script.
+Create multiple synchronization tasks at once using a CSV file with the `create_tasks_from_csv.py` script.
 
 ### CSV File Format
 
@@ -333,7 +333,7 @@ Column order does matter.  The script auto-detects the delimiter (`;`, `,`, `|`,
 **Validate CSV format before creating tasks:**
 
 ```bash
-python3 create_tasks_from_csv.py -c imapsync1 users. csv
+python3 create_tasks_from_csv.py -c imapsync1 users.csv
 ```
 
 **Create all tasks from CSV:**
