@@ -311,37 +311,15 @@ Create multiple synchronization tasks at once using a CSV file with the `create_
 
 This Python script automates the bulk creation of IMAP synchronization tasks by reading user data from a CSV file and calling the `create-task` API endpoint for each entry. It's ideal for migrating multiple email accounts from a remote IMAP server to your local mail system.
 
-### Download the Script
-
-Download the script directly from GitHub:
-
-```bash
-# Download latest stable version from main branch
-curl -O https://raw.githubusercontent.com/NethServer/ns8-imapsync/main/create_tasks_from_csv.py
-
-# Or download specific version (replace with desired tag/branch)
-curl -O https://raw.githubusercontent.com/NethServer/ns8-imapsync/v1.0.0/create_tasks_from_csv.py
-
-# Make it executable (optional)
-chmod +x create_tasks_from_csv.py
-```
-
-Alternatively, clone the entire repository:
-
-```bash
-git clone https://github.com/NethServer/ns8-imapsync.git
-cd ns8-imapsync
-```
-
 ### CSV File Format
 
 The CSV file must contain a header row with these **6 required columns**:
 
 ```csv
-localusername;remoteusername;remotepassword;remotehostname;remoteport;security
-pansy.dumbledore5;user1@domain.com;"enquotedPasswordIfSeparatorInside";imap.domain.com;993;ssl
-lavender.umbridge7;user2@domain.com;"enquotedPasswordIfSeparatorInside";imap.domain.com;993;ssl
-dolores.slughorn3;user3@domain.com;"enquotedPasswordIfSeparatorInside";imap.domain.com;143;tls
+localusername,remoteusername,remotepassword,remotehostname,remoteport,security
+pansy.dumbledore5,user1@domain.com,"enquotedPasswordIfSeparatorInside",imap.domain.com,993,ssl
+lavender.umbridge7,user2@domain.com,"enquotedPasswordIfSeparatorInside",imap.domain.com,993,ssl
+dolores.slughorn3,user3@domain.com,"enquotedPasswordIfSeparatorInside",imap.domain.com,143,tls
 ```
 
 **Required columns:**
@@ -354,63 +332,78 @@ dolores.slughorn3;user3@domain.com;"enquotedPasswordIfSeparatorInside";imap.doma
 
 **Important notes:**
 - Column order **does not matter** – the script maps columns by header name
-- Delimiter is **auto-detected** from: semicolon (`;`), comma (`,`), pipe (`|`), or tab
-- Passwords with special characters should be quoted: `"myP@ss;word"`
+- Delimiter is comma (`,`)
+- Passwords with special characters should be quoted: `"myP@ss,word"`
 - **All fields are mandatory except `security`** – rows with empty required values will be rejected
 - The `security` field can be empty (for no encryption), but the other 5 fields must contain values
 - Empty lines in the CSV are automatically skipped
 
 ### Usage
 
-**1. Validate CSV format before creating tasks:**
+The script is designed to be used with NS8 `runagent` to bulk import synchronization tasks.
+
+**Basic usage (file redirection):**
 
 ```bash
-python3 create_tasks_from_csv.py -c imapsync1 users.csv
+runagent -m imapsync1 create_tasks_from_csv.py < users.csv
 ```
 
-This performs comprehensive validation:
+**Alternative (using pipe):**
+
+```bash
+cat users.csv | runagent -m imapsync1 create_tasks_from_csv.py
+```
+
+**Check CSV format before creating tasks (check-only mode):**
+
+```bash
+runagent -m imapsync1 create_tasks_from_csv.py -c < users.csv
+```
+
+This performs comprehensive validation without making API calls:
 - Checks CSV structure (required columns present)
-- Validates delimiter detection
+- Validates delimiter (comma-separated)
 - Verifies all mandatory fields have values (except `security` which can be empty)
 - Validates port numbers are numeric
 - Reports specific errors for each invalid row
-- **No API calls made** – safe dry-run before actual task creation
 
 Example validation output:
 ```bash
+📋 CSV Column Validation:
+   Delimiter: ',' (comma-separated)
+   Found 6 column(s): localusername, remotehostname, remotepassword, remoteport, remoteusername, security
+   Column order: does not matter (mapped by header name)
+✓ All 6 required columns present
+✓ Found 2 data row(s) (empty lines skipped)
+
 🔍 Validating row data...
-  ✗ Row 2: Missing required value(s): remotepassword
-  ✗ Row 5: Invalid port number: 'abc'
+✓ All 2 rows validated successfully
+✓ Generated 2 unique task IDs
 
-✗ Validation failed: 2 row(s) with errors
+✓ CSV file is valid. No tasks were created (check-only mode).
 ```
 
-**2. Create all tasks from CSV:**
+**Display help:**
 
 ```bash
-python3 create_tasks_from_csv.py imapsync1 users.csv
+runagent -m imapsync1 create_tasks_from_csv.py -h
 ```
-
-**3. Display help:**
-
-```bash
-python3 create_tasks_from_csv.py -h
-```
-
-### Arguments
-
-- `module_id` – The imapsync module instance ID (e.g., `imapsync1`, `imapsync2`)
-- `csv_file` – Path to the CSV file containing user data
 
 ### Options
 
 - `-c, --check` – Check-only mode: validates CSV format without creating tasks
-- `-h, --help` – Display comprehensive help message with examples
+- `-h, --help` – Display comprehensive help message
 
 ### Features
 
-- **Smart CSV parsing:**
-  - Auto-detects delimiter (`;`, `,`, `|`, tab) from first line
+- **Flexible input methods:**
+  - Reads from standard input (stdin)
+  - Works with file redirection (`<`), pipes (`|`), or heredoc
+  - Compatible with NS8 `runagent` for direct module integration
+  - No file path arguments needed
+
+- **CSV parsing:**
+  - Comma-separated delimiter (`,`) - required
   - Validates all 6 required columns are present before processing
   - Handles quoted fields with embedded delimiters
   - Reports missing columns with clear error messages
@@ -446,7 +439,7 @@ python3 create_tasks_from_csv.py -h
   - Provides final summary with success/failure counts
 
 - **API integration:**
-  - Calls `api-cli run module/<module_id>/create-task` for each user
+  - Calls `action/create-task` for each user
   - Passes data as properly formatted JSON
   - Captures and displays API response output
 
@@ -484,11 +477,6 @@ Creating task for dolores.slughorn3 (ID: g7h8i9)...
 
 ### Troubleshooting
 
-**"api-cli command not found"**
-
-- Ensure you're running the script on the NS8 cluster node
-- Verify `api-cli` is installed and in your PATH
-
 **"Missing required columns"**
 
 - Check CSV header row contains all 6 required column names exactly as specified
@@ -504,17 +492,6 @@ Creating task for dolores.slughorn3 (ID: g7h8i9)...
 **"Invalid port number"**
 
 - Ensure `remoteport` column contains only numeric values (e.g., `993`, `143`)
-
-**"File not found"**
-
-- Verify CSV file path is correct
-- Use absolute path if having issues with relative paths
-
-**API creation fails for specific users**
-
-- Check that `localusername` exists on your mail server
-- Verify remote IMAP credentials are correct
-- Test remote server connectivity and authentication manually
 
 **Remove all tasks after a bad import**
 
