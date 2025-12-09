@@ -1,20 +1,29 @@
 #!/usr/bin/env python3
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+#
+# This script reads a CSV file from standard input (stdin) and creates multiple
+# IMAPSYNC tasks based on the provided user data.
+#
+
 """
 IMAPSYNC Bulk User Import Tool - Create multiple sync tasks from CSV
 """
 
 import csv
-import json
-import subprocess
 import string
 import random
 import sys
-from typing import Optional, Tuple
-
+from typing import Tuple
+import agent
+import os
 
 # Configuration constants
-DELIMITERS = [';', ',', '\t', '|']
-DEFAULT_DELIMITER = ';'
+DELIMITER = ','  # Only comma-separated values supported
 REQUIRED_COLUMNS = {
     'localusername', 'remoteusername', 'remotepassword',
     'remotehostname', 'remoteport', 'security'
@@ -39,68 +48,51 @@ DEFAULT_TASK_DATA = {
 }
 
 
-def detect_delimiter(csv_file: str) -> str:
-    """Auto-detect the CSV delimiter from first line"""
-    try:
-        with open(csv_file, 'r', encoding='utf-8') as f:
-            first_line = f.readline()
-            for delimiter in DELIMITERS:
-                if first_line.count(delimiter) >= 2:
-                    return delimiter
-        return DEFAULT_DELIMITER
-    except Exception:
-        return DEFAULT_DELIMITER
-
-
 def generate_random_id(length: int = 6) -> str:
     """Generate random alphanumeric ID"""
     chars = string.ascii_letters + string.digits
     return ''.join(random.choices(chars, k=length)).lower()
 
 
-def validate_and_load_csv(csv_file: str, delimiter: str) -> Tuple[bool, list, str]:
-    """Validate CSV columns and load all rows in a single pass"""
+def validate_and_load_csv() -> Tuple[bool, list]:
+    """Validate CSV columns from stdin and load all rows in a single pass"""
     try:
-        with open(csv_file, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f, delimiter=delimiter)
-            
-            if reader.fieldnames is None:
-                print("✗ Error: CSV file is empty or invalid")
-                return False, [], delimiter
-            
-            csv_columns = set(reader.fieldnames)
-            missing = REQUIRED_COLUMNS - csv_columns
-            
-            print(f"\n📋 CSV Column Validation:")
-            print(f"   Delimiter detected: '{delimiter}'")
-            print(f"   Found {len(csv_columns)} column(s): {', '.join(sorted(csv_columns))}")
-            print(f"   Column order: does not matter (mapped by header name)")
-            
-            if missing:
-                print(f"\n✗ Missing {len(missing)} required column(s):")
-                for col in sorted(missing):
-                    print(f"   - {col}")
-                return False, [], delimiter
-            
-            print(f"✓ All {len(REQUIRED_COLUMNS)} required columns present")
-            
-            # Load all rows at once, filtering empty lines
-            rows = []
-            for row in reader:
-                # Skip empty rows (all values are empty or whitespace)
-                if all(not value.strip() for value in row.values()):
-                    continue
-                rows.append(row)
-            
-            print(f"✓ Found {len(rows)} data row(s) (empty lines skipped)")
-            return True, rows, delimiter
+        reader = csv.DictReader(sys.stdin, delimiter=DELIMITER)
+        
+        if reader.fieldnames is None:
+            print("✗ Error: CSV input is empty or invalid")
+            return False, []
+        
+        csv_columns = set(reader.fieldnames)
+        missing = REQUIRED_COLUMNS - csv_columns
+        
+        print(f"\n📋 CSV Column Validation:")
+        print(f"   Delimiter: '{DELIMITER}' (comma-separated)")
+        print(f"   Found {len(csv_columns)} column(s): {', '.join(sorted(csv_columns))}")
+        print(f"   Column order: does not matter (mapped by header name)")
+        
+        if missing:
+            print(f"\n✗ Missing {len(missing)} required column(s):")
+            for col in sorted(missing):
+                print(f"   - {col}")
+            return False, []
+        
+        print(f"✓ All {len(REQUIRED_COLUMNS)} required columns present")
+        
+        # Load all rows at once, filtering empty lines
+        rows = []
+        for row in reader:
+            # Skip empty rows (all values are empty or whitespace)
+            if all(not value.strip() for value in row.values()):
+                continue
+            rows.append(row)
+        
+        print(f"✓ Found {len(rows)} data row(s) (empty lines skipped)")
+        return True, rows
     
-    except FileNotFoundError:
-        print(f"✗ Error: File '{csv_file}' not found")
-        return False, [], delimiter
     except Exception as e:
         print(f"✗ Error reading CSV ({type(e).__name__}): {str(e)}")
-        return False, [], delimiter
+        return False, []
 
 
 def parse_csv_row(row: dict, existing_ids: set) -> dict:
@@ -150,30 +142,24 @@ def parse_csv_row(row: dict, existing_ids: set) -> dict:
 
 
 def create_task(module_id: str, task_data: dict) -> bool:
-    """Create a task via API call"""
-    json_data = json.dumps(task_data)
-    cmd = ['api-cli', 'run', f'module/{module_id}/create-task', '--data', json_data]
+    """Create a task via agent.tasks.run()"""
     local_user = task_data.get('localuser', 'unknown')
     task_id = task_data.get('task_id', 'unknown')
-    
     print(f"Creating task for {local_user} (ID: {task_id})...")
     
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        create_retval = agent.tasks.run(
+            agent_id=os.environ['AGENT_ID'],
+            action='create-task',
+            data=task_data
+        )
+        agent.assert_exp(create_retval['exit_code'] == 0, "The create-task subtask failed!")
         print(f"✓ Success: {local_user}")
-        if result.stdout:
-            print(f"  Response: {result.stdout.strip()}")
         return True
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         print(f"✗ Error for {local_user}")
-        if e.stderr:
-            print(f"  Error: {e.stderr.strip()}")
+        print(f"  Error: {e}")
         return False
-    except FileNotFoundError:
-        print("✗ Error: The 'api-cli' command was not found")
-        print("  Make sure api-cli is installed and in the PATH")
-        return False
-
 
 def print_help():
     """Display help message"""
@@ -183,27 +169,32 @@ def print_help():
 ╚════════════════════════════════════════════════════════════════════════╝
 
 USAGE:
-    python3 create_tasks_from_csv.py <module_id> <csv_file>
+    runagent -m imapsync1 create_tasks_from_csv.py [options] < users.csv
 
-ARGUMENTS:
-    module_id   : The imapsync module ID (e.g., imapsync1, imapsync2)
-    csv_file    : Path to the CSV file with user data
+OPTIONS:
+    -h, --help             : Show this help message
+    -c, --check            : Check CSV format without creating tasks
 
 EXAMPLE:
-    python3 create_tasks_from_csv.py imapsync1 users.csv
+    runagent -m imapsync1 create_tasks_from_csv.py < users.csv
+    runagent -m imapsync1 create_tasks_from_csv.py -c < users.csv
+
+INPUT:
+    - Reads CSV data from standard input (stdin)
+    - Pipe CSV file: cat users.csv | runagent -m imapsync1 create_tasks_from_csv.py
 
 CSV FILE FORMAT:
-    - Delimiter: semicolon (;), comma (,), pipe (|), or tab (auto-detected)
+    - Delimiter: comma (,) - required
     - Required columns: localusername, remoteusername, remotepassword,
                        remotehostname, remoteport, security
     - All required columns must be present in the header row
 
 CSV HEADER EXAMPLE:
-    localusername;remoteusername;remotepassword;remotehostname;remoteport;security
+    localusername,remoteusername,remotepassword,remotehostname,remoteport,security
 
 CSV DATA EXAMPLE:
-    pansy.dumbledore5;user1@domain.com;"quotedPassword";smtp.domain.com;993;ssl
-    lavender.umbridge7;user2@domain.com;"quotedPassword";smtp.domain.com;993;ssl
+    pansy.dumbledore5,user1@domain.com,"quotedPassword",imap.domain.com,993,ssl
+    lavender.umbridge7,user2@domain.com,"quotedPassword",imap.domain.com,993,ssl
 
 CREATED FIELDS (auto-populated):
     - task_id              : Random 6-character ID (auto-generated)
@@ -215,17 +206,9 @@ CREATED FIELDS (auto-populated):
     - foldersynchronization: "all"
     - sieve_enabled        : false
 
-API CALL:
-    api-cli run module/<module_id>/create-task --data '<json_data>'
-
-OPTIONS:
-    -h, --help             : Show this help message
-    -c, --check            : Check CSV format without creating tasks
-
 TROUBLESHOOTING:
-    - Ensure 'api-cli' command is installed and available in PATH
-    - Check that all 6 required columns are present in the CSV header
-    - Verify the module_id matches an existing imapsync module
+    - Check that CSV uses comma (,) as delimiter
+    - Verify all 6 required columns are present in the CSV header
     - Make sure remoteport values are numeric (e.g., 993, 143)
     - Verify security values are valid (ssl, tls, empty '')
     """
@@ -236,29 +219,26 @@ def main():
     args = sys.argv[1:]
     
     # Handle help flags
-    if not args or args[0] in ['-h', '--help']:
+    if '-h' in args or '--help' in args:
         print_help()
         sys.exit(0)
     
     # Handle check flag
-    check_only = False
-    if args[0] in ['-c', '--check']:
-        check_only = True
-        if len(args) < 3:
-            print("Usage: python3 create_tasks_from_csv.py -c <module_id> <csv_file>")
-            sys.exit(1)
-        module_id, csv_file = args[1], args[2]
-    else:
-        if len(args) < 2:
-            print("Usage: python3 create_tasks_from_csv.py <module_id> <csv_file>")
-            print("       python3 create_tasks_from_csv.py -h")
-            sys.exit(1)
-        module_id, csv_file = args[0], args[1]
+    check_only = '-c' in args or '--check' in args
+    if check_only:
+        args = [arg for arg in args if arg not in ['-c', '--check']]
     
-    # Validate and load CSV in a single pass
-    print(f"Validating CSV file: {csv_file}")
-    delimiter = detect_delimiter(csv_file)
-    is_valid, rows, delimiter = validate_and_load_csv(csv_file, delimiter)
+    # Validate no extra arguments
+    if len(args) != 0:
+        print("✗ Error: Unexpected arguments")
+        print("Usage: runagent -m imapsync1 create_tasks_from_csv [options]")
+        sys.exit(1)
+    
+    module_id = 'imapsync1'
+    
+    # Validate and load CSV from stdin
+    print("Reading CSV from standard input...")
+    is_valid, rows = validate_and_load_csv()
     
     if not is_valid:
         sys.exit(1)
