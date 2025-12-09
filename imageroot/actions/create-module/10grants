@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+#
+# This script is also invocated by the upgrade-module.d scripts
+#
+
+# Grant the "create-task" role to selfadm agent for create_tasks_from_csv.py
+redis-exec SADD "${AGENT_ID}/roles/selfadm" "create-task"
