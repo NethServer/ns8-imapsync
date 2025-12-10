@@ -315,11 +315,18 @@ This Python script automates the bulk creation of IMAP synchronization tasks by 
 
 The CSV file must contain a header row with these **6 required columns**:
 
+This users.csv file can be found at .config/examples/users.csv
+
+```bash
+runagent -m imapsync1
+cat ../examples/users.csv
+```
+
 ```csv
 localusername,remoteusername,remotepassword,remotehostname,remoteport,security
-pansy.dumbledore5,user1@domain.com,"enquotedPasswordIfSeparatorInside",imap.domain.com,993,ssl
-lavender.umbridge7,user2@domain.com,"enquotedPasswordIfSeparatorInside",imap.domain.com,993,ssl
-dolores.slughorn3,user3@domain.com,"enquotedPasswordIfSeparatorInside",imap.domain.com,143,tls
+pansy.dumbledore5,user1@example.org,"enquotedPasswordIfSeparatorInside",imap.example.org,993,ssl
+lavender.umbridge7,user2@example.org,"enquotedPasswordIfSeparatorInside",imap.example.org,993,ssl
+dolores.slughorn3,user3@example.org,"enquotedPasswordIfSeparatorInside",imap.example.org,143,tls
 ```
 
 **Required columns:**

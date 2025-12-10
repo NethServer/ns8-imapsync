@@ -1,6 +1,0 @@
-localusername,remoteusername,remotepassword,remotehostname,remoteport,security
-pansy.dumbledore5,user1@domain.com,"REPLACE_WITH_ACTUAL_PASSWORD",imap.domain.com,993,ssl
-lavender.umbridge7,user2@domain.com,"REPLACE_WITH_ACTUAL_PASSWORD",imap.domain.com,993,ssl
-dolores.slughorn3,user3@domain.com,"REPLACE_WITH_ACTUAL_PASSWORD",imap.domain.com,993,ssl
-rubeus.lockhart8,user4@domain.com,"REPLACE_WITH_ACTUAL_PASSWORD",imap.domain.com,993,ssl
-fleur.spinnet0,user5@domain.com,"REPLACE_WITH_ACTUAL_PASSWORD",imap.domain.com,993,ssl
