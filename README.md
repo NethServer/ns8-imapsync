@@ -305,7 +305,7 @@ podman exec -ti imapsync /usr/local/bin/syncctl status foo_a1j44r
 
 ## Bulk import tasks from CSV
 
-Create multiple synchronization tasks at once using a CSV file with the `create_tasks_from_csv.py` utility script.
+Create multiple synchronization tasks at once using a CSV file with the `import-csv-tasks` utility script.
 
 ### Overview
 
@@ -345,19 +345,19 @@ The script is designed to be used with NS8 `runagent` to bulk import synchroniza
 **Basic usage (file redirection):**
 
 ```bash
-runagent -m imapsync1 create_tasks_from_csv.py < users.csv
+runagent -m imapsync1 import-csv-tasks < users.csv
 ```
 
 **Alternative (using pipe):**
 
 ```bash
-cat users.csv | runagent -m imapsync1 create_tasks_from_csv.py
+cat users.csv | runagent -m imapsync1 import-csv-tasks
 ```
 
 **Check CSV format before creating tasks (check-only mode):**
 
 ```bash
-runagent -m imapsync1 create_tasks_from_csv.py -c < users.csv
+runagent -m imapsync1 import-csv-tasks -c < users.csv
 ```
 
 This performs comprehensive validation without making API calls:
@@ -386,7 +386,7 @@ Example validation output:
 **Display help:**
 
 ```bash
-runagent -m imapsync1 create_tasks_from_csv.py -h
+runagent -m imapsync1 import-csv-tasks -h
 ```
 
 ### Options
@@ -448,7 +448,7 @@ runagent -m imapsync1 create_tasks_from_csv.py -h
 Create 3 synchronization tasks from a CSV file:
 
 ```bash
-$ python3 create_tasks_from_csv.py imapsync1 users.csv
+runagent -m imapsync1 import-csv-tasks < users.csv
 
 Validating CSV file: users.csv
 

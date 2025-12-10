@@ -169,19 +169,19 @@ def print_help():
 ╚════════════════════════════════════════════════════════════════════════╝
 
 USAGE:
-    runagent -m imapsync1 create_tasks_from_csv.py [options] < users.csv
+    runagent -m imapsync1 import-csv-tasks [options] < users.csv
 
 OPTIONS:
     -h, --help             : Show this help message
     -c, --check            : Check CSV format without creating tasks
 
 EXAMPLE:
-    runagent -m imapsync1 create_tasks_from_csv.py < users.csv
-    runagent -m imapsync1 create_tasks_from_csv.py -c < users.csv
+    runagent -m imapsync1 import-csv-tasks < users.csv
+    runagent -m imapsync1 import-csv-tasks -c < users.csv
 
 INPUT:
     - Reads CSV data from standard input (stdin)
-    - Pipe CSV file: cat users.csv | runagent -m imapsync1 create_tasks_from_csv.py
+    - Pipe CSV file: cat users.csv | runagent -m imapsync1 import-csv-tasks
 
 CSV FILE FORMAT:
     - Delimiter: comma (,) - required
@@ -231,7 +231,7 @@ def main():
     # Validate no extra arguments
     if len(args) != 0:
         print("✗ Error: Unexpected arguments")
-        print("Usage: runagent -m imapsync1 create_tasks_from_csv [options]")
+        print("Usage: runagent -m imapsync1 import-csv-tasks [options]")
         sys.exit(1)
     
     module_id = 'imapsync1'
