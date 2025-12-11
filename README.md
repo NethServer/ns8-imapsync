@@ -303,6 +303,224 @@ podman exec -ti imapsync /usr/local/bin/syncctl stop foo_a1j44r
 podman exec -ti imapsync /usr/local/bin/syncctl status foo_a1j44r
 ```
 
+## Bulk import tasks from CSV
+
+Create multiple synchronization tasks at once using a CSV file with the `import-csv-tasks` utility script.
+
+### Overview
+
+This Python script automates the bulk creation of IMAP synchronization tasks by reading user data from a CSV file and calling the `create-task` API endpoint for each entry. It's ideal for migrating multiple email accounts from a remote IMAP server to your local mail system.
+
+### CSV File Format
+
+The CSV file must contain a header row with these **6 required columns**:
+
+This users.csv file can be found at .config/examples/users.csv
+
+```bash
+runagent -m imapsync1
+cat ../examples/users.csv
+```
+
+```csv
+localusername,remoteusername,remotepassword,remotehostname,remoteport,security
+pansy.dumbledore5,user1@example.org,"enquotedPasswordIfSeparatorInside",imap.example.org,993,ssl
+lavender.umbridge7,user2@example.org,"enquotedPasswordIfSeparatorInside",imap.example.org,993,ssl
+dolores.slughorn3,user3@example.org,"enquotedPasswordIfSeparatorInside",imap.example.org,143,tls
+```
+
+**Required columns:**
+- `localusername` – Local user account name (must exist on your mail server)
+- `remoteusername` – Remote IMAP account username/email
+- `remotepassword` – Remote IMAP account password (quote if contains special characters)
+- `remotehostname` – Remote IMAP server hostname or IP
+- `remoteport` – Remote IMAP server port (typically `993` for SSL/TLS, `143` for STARTTLS)
+- `security` – Security protocol: `ssl`, `tls`, or empty string `""` for no encryption
+
+**Important notes:**
+- Column order **does not matter** – the script maps columns by header name
+- Delimiter is comma (`,`)
+- Passwords with special characters should be quoted: `"myP@ss,word"`
+- **All fields are mandatory except `security`** – rows with empty required values will be rejected
+- The `security` field can be empty (for no encryption), but the other 5 fields must contain values
+- Empty lines in the CSV are automatically skipped
+
+### Usage
+
+The script is designed to be used with NS8 `runagent` to bulk import synchronization tasks.
+
+**Basic usage (file redirection):**
+
+```bash
+runagent -m imapsync1 import-csv-tasks < users.csv
+```
+
+**Alternative (using pipe):**
+
+```bash
+cat users.csv | runagent -m imapsync1 import-csv-tasks
+```
+
+**Check CSV format before creating tasks (check-only mode):**
+
+```bash
+runagent -m imapsync1 import-csv-tasks -c < users.csv
+```
+
+This performs comprehensive validation without making API calls:
+- Checks CSV structure (required columns present)
+- Validates delimiter (comma-separated)
+- Verifies all mandatory fields have values (except `security` which can be empty)
+- Validates port numbers are numeric
+- Reports specific errors for each invalid row
+
+Example validation output:
+```bash
+📋 CSV Column Validation:
+   Delimiter: ',' (comma-separated)
+   Found 6 column(s): localusername, remotehostname, remotepassword, remoteport, remoteusername, security
+   Column order: does not matter (mapped by header name)
+✓ All 6 required columns present
+✓ Found 2 data row(s) (empty lines skipped)
+
+🔍 Validating row data...
+✓ All 2 rows validated successfully
+✓ Generated 2 unique task IDs
+
+✓ CSV file is valid. No tasks were created (check-only mode).
+```
+
+**Display help:**
+
+```bash
+runagent -m imapsync1 import-csv-tasks -h
+```
+
+### Options
+
+- `-c, --check` – Check-only mode: validates CSV format without creating tasks
+- `-h, --help` – Display comprehensive help message
+
+### Features
+
+- **Flexible input methods:**
+  - Reads from standard input (stdin)
+  - Works with file redirection (`<`), pipes (`|`), or heredoc
+  - Compatible with NS8 `runagent` for direct module integration
+  - No file path arguments needed
+
+- **CSV parsing:**
+  - Comma-separated delimiter (`,`) - required
+  - Validates all 6 required columns are present before processing
+  - Handles quoted fields with embedded delimiters
+  - Reports missing columns with clear error messages
+  - Skips empty lines automatically
+
+- **Data validation:**
+  - **Mandatory field checking**: ensures 5 required fields are not empty (`localusername`, `remoteusername`, `remotepassword`, `remotehostname`, `remoteport`)
+  - **Optional field**: `security` can be empty (for no encryption)
+  - **Port validation**: ensures `remoteport` contains only numeric values
+  - **Check mode** (`-c` flag): validates all rows without creating tasks
+  - Clear error messages with row numbers for easy debugging
+
+- **Automatic field population:**
+  - Generates unique random 6-character task ID (lowercase alphanumeric) for each user
+  - Auto-fills optional fields with sensible defaults:
+    - `cron`: `""` (empty - no automatic scheduling)
+    - `delete_local`: `false` (preserve local emails)
+    - `delete_remote`: `false` (preserve remote emails)
+    - `delete_remote_older`: `0` (no age-based deletion)
+    - `exclude`: `""` (no folder exclusions)
+    - `foldersynchronization`: `"all"` (sync all folders)
+    - `sieve_enabled`: `false` (don't apply Sieve filters)
+
+- **Robust error handling:**
+  - Validates port numbers are numeric
+  - Continues processing remaining users if one fails
+  - Displays detailed error messages per user
+  - Returns non-zero exit code if any task fails
+
+- **Progress tracking:**
+  - Shows real-time progress for each user creation
+  - Displays success/failure status per task
+  - Provides final summary with success/failure counts
+
+- **API integration:**
+  - Calls `action/create-task` for each user
+  - Passes data as properly formatted JSON
+  - Captures and displays API response output
+
+### Example Output
+
+Create 3 synchronization tasks from a CSV file:
+
+```bash
+runagent -m imapsync1 import-csv-tasks < users.csv
+
+Validating CSV file: users.csv
+
+📋 CSV Column Validation:
+   Delimiter detected: ';'
+   Found 6 column(s): localusername, remotepassword, remotehostname, remoteport, remoteusername, security
+✓ All 6 required columns present
+✓ Found 3 data row(s)
+
+📦 Starting task creation with module: imapsync1
+   Processing 3 user(s)...
+
+Creating task for pansy.dumbledore5 (ID: a1b2c3)...
+✓ Success: pansy.dumbledore5
+
+Creating task for lavender.umbridge7 (ID: d4e5f6)...
+✓ Success: lavender.umbridge7
+
+Creating task for dolores.slughorn3 (ID: g7h8i9)...
+✓ Success: dolores.slughorn3
+
+======================================================================
+📊 Summary: 3 successful, 0 failed
+======================================================================
+```
+
+### Troubleshooting
+
+**"Missing required columns"**
+
+- Check CSV header row contains all 6 required column names exactly as specified
+- Verify no typos in column names (case-sensitive)
+
+**"Missing required value(s)"**
+
+- The script rejects rows with empty mandatory fields
+- Ensure all 5 required fields have values: `localusername`, `remoteusername`, `remotepassword`, `remotehostname`, `remoteport`
+- Only `security` can be empty (for no encryption)
+- Use `-c` flag to validate CSV before creating tasks
+
+**"Invalid port number"**
+
+- Ensure `remoteport` column contains only numeric values (e.g., `993`, `143`)
+
+**Remove all tasks after a bad import**
+
+If you need to clean up after a failed or incorrect bulk import, you can remove all task configuration files:
+
+```bash
+# Stop all running tasks first
+api-cli run module/imapsync1/stop-all-tasks
+
+# Remove all task configuration files (replace imapsync1 with your module ID)
+rm -f /home/imapsync1/.config/state/imapsync/*.env
+rm -f /home/imapsync1/.config/state/imapsync/*.pwd
+rm -f /home/imapsync1/.config/state/imapsync/*.log
+rm -f /home/imapsync1/.config/state/imapsync/*.lock
+rm -f /home/imapsync1/.config/state/cron/*.cron
+
+# Verify cleanup
+ls -la /home/imapsync1/.config/state/imapsync/
+```
+
+**Note**: This preserves the `vmail.pwd` file (master password). To start fresh completely, you can also remove it, but you'll need to reconfigure the module afterward.
+
 ## Uninstall
 
 To uninstall the instance:
