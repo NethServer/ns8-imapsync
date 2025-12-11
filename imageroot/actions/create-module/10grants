@@ -5,9 +5,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+set -e
+exec 1>&2 # Redirect any output to the journal (stderr)
+
 #
 # This script is also invocated by the upgrade-module.d scripts
 #
 
-# Grant the "create-task" role to selfadm agent for create_tasks_from_csv.py
-redis-exec SADD "${AGENT_ID}/roles/selfadm" "create-task"
+# Grants for selfadm agent
+redis-exec SADD "${AGENT_ID}/roles/selfadm" \
+    "create-task"
