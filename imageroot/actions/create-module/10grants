@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+exec 1>&2 # Redirect any output to the journal (stderr)
+
+#
+# This script is also invocated by the upgrade-module.d scripts
+#
+
+# Grants for selfadm agent
+redis-exec SADD "${AGENT_ID}/roles/selfadm" \
+    "create-task"
