@@ -549,7 +549,7 @@ export default {
           this.cron = this.cron + "m";
         }
       }
-      // For hours (cronType === "hours"), cron is already in the format "2h", "3h", etc.
+      // For hours (cronType === "hours"), cron is already in the format "1h", "2h", "4h", etc.
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
