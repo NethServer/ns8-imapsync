@@ -539,7 +539,7 @@ export default {
         `${taskAction}-completed-${eventId}`,
         this.setCreateTaskCompleted
       );
-      // modify cron value to be compatible with previous format ('',5m, 10m, 15m, 30m, 45m, 1h, 2h, 3h, etc..)
+      // modify cron value to be compatible with previous format ('',5m, 10m, 15m, 30m, 45m, 1h, 2h, 4h, 6h, 8h, 12h, 24h)
       if (this.cronType === "disabled") {
         this.cron = "";
       } else if (this.cronType === "minutes") {
@@ -549,7 +549,7 @@ export default {
           this.cron = this.cron + "m";
         }
       }
-      // For hours (cronType === "hours"), cron is already in the format "2h", "3h", etc.
+      // For hours (cronType === "hours"), cron is already in the format "1h", "2h", "4h", etc.
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
