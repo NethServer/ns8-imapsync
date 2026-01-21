@@ -221,7 +221,34 @@
           :invalid-message="$t(error.delete_remote_older)"
           class="mg-left"
         />
+        <span class="bx--label">
+          {{ $t('tasks.select_your_cron') }}
+        </span>
+        <cv-radio-group vertical class="mg-bottom mg-left">
+          <cv-radio-button
+            :label="$t('common.disabled')"
+            value="disabled"
+            ref="cronType"
+            v-model="cronTypeFromValue"
+            :disabled="loading.createTask"
+          />
+          <cv-radio-button
+            :label="$t('tasks.minutes')"
+            value="minutes"
+            ref="cronType"
+            v-model="cronTypeFromValue"
+            :disabled="loading.createTask"
+          />
+          <cv-radio-button
+            :label="$t('tasks.hours')"
+            value="hours"
+            ref="cronType"
+            v-model="cronTypeFromValue"
+            :disabled="loading.createTask"
+          />
+        </cv-radio-group>
         <NsSlider
+          v-if="cronTypeFromValue === 'minutes'"
           v-model="cron"
           :label="$t('tasks.select_your_cron')"
           min="1"
@@ -230,16 +257,32 @@
           stepMultiplier="1"
           minLabel=""
           maxLabel=""
-          showUnlimited
-          :unlimitedLabel="$t('tasks.cron_disabled')"
-          :limitedLabel="$t('tasks.cron_enabled')"
-          :isUnlimited="!cronEnabled"
           :invalidMessage="$t(error.cron)"
           :disabled="loading.createTask"
           :unitLabel="$t('tasks.minutes')"
-          @unlimited="cronEnabled = !$event"
           class="mg-bottom-xlg"
+          ref="cronMinutes"
         />
+        <cv-dropdown
+          v-if="cronTypeFromValue === 'hours'"
+          :light="true"
+          :value="cron"
+          v-model="cron"
+          :up="false"
+          :inline="false"
+          :label="$t('tasks.select_your_cron')"
+          :disabled="loading.createTask"
+          class="mg-bottom-lg max-dropdown-width"
+          ref="cronHours"
+        >
+          <cv-dropdown-item value="1h">1h</cv-dropdown-item>
+          <cv-dropdown-item value="2h">2h</cv-dropdown-item>
+          <cv-dropdown-item value="4h">4h</cv-dropdown-item>
+          <cv-dropdown-item value="6h">6h</cv-dropdown-item>
+          <cv-dropdown-item value="8h">8h</cv-dropdown-item>
+          <cv-dropdown-item value="12h">12h</cv-dropdown-item>
+          <cv-dropdown-item value="24h">24h</cv-dropdown-item>
+        </cv-dropdown>
       </cv-form>
       <cv-row v-if="error.createTask">
         <cv-column>
@@ -291,7 +334,7 @@ export default {
       exclude: "",
       deleteMsg: "no_delete",
       cron: "0",
-      cronEnabled: false,
+      cronType: "disabled",
       sieveEnabled: false,
       error: {
         enabled_mailboxes: "",
@@ -308,6 +351,14 @@ export default {
   },
   computed: {
     ...mapState(["instanceName", "core", "appName"]),
+    cronTypeFromValue: {
+      get() {
+        return this.cronType;
+      },
+      set(value) {
+        this.cronType = value;
+      },
+    },
   },
   watch: {
     isShown: function () {
@@ -328,12 +379,35 @@ export default {
         this.deleteMsg = this.task.delete;
         this.deleteRemoteOlder = String(this.task.delete_remote_older);
         this.cron = this.task.cron;
-        this.cronEnabled = this.task.cron_enabled;
+        // Set cronType based on cron value
+        if (!this.task.cron_enabled) {
+          this.cronType = "disabled";
+        } else if (this.task.cron.includes("h")) {
+          this.cronType = "hours";
+        } else if (this.task.cron.endsWith("m")) {
+          this.cronType = "minutes";
+          // Extract numeric part for slider: "49m" -> "49"
+          this.cron = String(parseInt(this.task.cron));
+        }
         this.sieveEnabled = this.task.sieve_enabled;
       } else {
         // hiding modal
         this.clearErrors();
         this.clearFields();
+      }
+    },
+    cronType: function (newValue) {
+      // When switching to hours mode, set default to 1h if not already set
+      if (newValue === "hours") {
+        if (!this.cron || this.cron === "0" || !this.cron.includes("h")) {
+          this.cron = "1h";
+        }
+      }
+      // When switching to minutes mode, set default to 1 if not already set
+      if (newValue === "minutes") {
+        if (!this.cron || this.cron === "0" || this.cron.includes("h")) {
+          this.cron = "1";
+        }
       }
     },
   },
@@ -350,7 +424,7 @@ export default {
       this.deleteMsg = "no_delete";
       this.deleteRemoteOlder = "15";
       this.cron = "0";
-      this.cronEnabled = false;
+      this.cronType = "disabled";
       this.sieveEnabled = false;
     },
     validateConfigureModule() {
@@ -465,14 +539,17 @@ export default {
         `${taskAction}-completed-${eventId}`,
         this.setCreateTaskCompleted
       );
-      // modify cron value to be compatible with previous format ('',5m, 10m, 15m, 30m, 45m, 1h)
-      if (this.cron === "60" && this.cronEnabled) {
-        this.cron = "1h";
-      } else if (this.cron !== "0" && this.cronEnabled) {
-        this.cron = this.cron + "m";
-      } else if (!this.cronEnabled) {
+      // modify cron value to be compatible with previous format ('',5m, 10m, 15m, 30m, 45m, 1h, 2h, 3h, etc..)
+      if (this.cronType === "disabled") {
         this.cron = "";
+      } else if (this.cronType === "minutes") {
+        if (this.cron === "60") {
+          this.cron = "1h";
+        } else {
+          this.cron = this.cron + "m";
+        }
       }
+      // For hours (cronType === "hours"), cron is already in the format "2h", "3h", etc.
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
