@@ -140,9 +140,9 @@
                     {{
                       row.cron === "0"
                         ? $t("tasks.no_cron")
-                        : row.cron === "1h"
-                        ? parseInt(row.cron) + " " + $t("tasks.hour")
-                        : parseInt(row.cron) + " " + $t("tasks.minutes")
+                        : row.cron.endsWith("h")
+                        ? parseInt(row.cron) + " " + (parseInt(row.cron) === 1 ? $t("tasks.hour") : $t("tasks.hours"))
+                        : parseInt(row.cron) + " " + (parseInt(row.cron) === 1 ? $t("tasks.minute") : $t("tasks.minutes"))
                     }}
                   </cv-data-table-cell>
                   <cv-data-table-cell>
@@ -395,20 +395,16 @@ export default {
       this.enabled_mailboxes = Config.enabled_mailboxes;
       const tasks = [];
       Config.user_properties.forEach((task) => {
-        // Transform the cron value
         let cronValue = task.cron;
         let cron_enabled = false;
         if (cronValue.endsWith("h")) {
-          cronValue = String(parseInt(cronValue) * 60); // Convert hours to minutes and ensure it's a string
           cron_enabled = true;
         } else if (cronValue.endsWith("m")) {
-          cronValue = String(parseInt(cronValue)); // Remove the 'm', keep the number, and ensure it's a string
           cron_enabled = true;
         } else {
           cronValue = "0";
           cron_enabled = false;
         }
-
         tasks.push({
           task_id: task.task_id,
           localuser: task.localuser,
