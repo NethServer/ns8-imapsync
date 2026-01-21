@@ -229,26 +229,26 @@
             :label="$t('common.disabled')"
             value="disabled"
             ref="cronType"
-            v-model="cronTypeFromValue"
+            v-model="cronType"
             :disabled="loading.createTask"
           />
           <cv-radio-button
             :label="$t('tasks.minutes')"
             value="minutes"
             ref="cronType"
-            v-model="cronTypeFromValue"
+            v-model="cronType"
             :disabled="loading.createTask"
           />
           <cv-radio-button
             :label="$t('tasks.hours')"
             value="hours"
             ref="cronType"
-            v-model="cronTypeFromValue"
+            v-model="cronType"
             :disabled="loading.createTask"
           />
         </cv-radio-group>
         <NsSlider
-          v-if="cronTypeFromValue === 'minutes'"
+          v-if="cronType === 'minutes'"
           v-model="cron"
           :label="$t('tasks.select_your_cron')"
           min="1"
@@ -264,7 +264,7 @@
           ref="cronMinutes"
         />
         <cv-dropdown
-          v-if="cronTypeFromValue === 'hours'"
+          v-if="cronType === 'hours'"
           :light="true"
           :value="cron"
           v-model="cron"
@@ -351,14 +351,6 @@ export default {
   },
   computed: {
     ...mapState(["instanceName", "core", "appName"]),
-    cronTypeFromValue: {
-      get() {
-        return this.cronType;
-      },
-      set(value) {
-        this.cronType = value;
-      },
-    },
   },
   watch: {
     isShown: function () {
