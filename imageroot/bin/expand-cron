@@ -15,6 +15,7 @@
 import agent
 import glob
 import os
+import random
 
 for file in glob.iglob("cron/*.cron"):
     os.remove(file)
@@ -25,7 +26,8 @@ for task_id in env_files:
     data = agent.read_envfile('imapsync/'+task_id+'.env')
     if data['CRON'] != '':
         if 'h' in data['CRON']:
-            cron_env = "1 */"+data['CRON'].replace('h','')+" * * *  root /usr/local/bin/syncctl start "+data['LOCALUSER']+'_'+data['TASK_ID']
+            random_minute = random.randint(0, 59)
+            cron_env = str(random_minute)+" */"+data['CRON'].replace('h','')+" * * *  root /usr/local/bin/syncctl start "+data['LOCALUSER']+'_'+data['TASK_ID']
         elif 'm' in data['CRON']:
             cron_env = "*/"+data['CRON'].replace('m','')+" * * * * root /usr/local/bin/syncctl start "+data['LOCALUSER']+'_'+data['TASK_ID']
         f = open("./cron/"+data['LOCALUSER']+'_'+data['TASK_ID']+".cron", "w", encoding="utf-8")
