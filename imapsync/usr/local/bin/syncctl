@@ -50,7 +50,7 @@ print_log_excerpt() {
 get_file_age_in_days() {
     local filename
     filename="/etc/imapsync/${task_id}.timestamp"
-    prev_foldersync="$(cat ${filename} || :)"
+    prev_foldersync="$(cat ${filename} 2>/dev/null || true)"
 
     local maxage
     if [[ ! -f "$filename" ]] || [[ "${FOLDERSYNCHRONIZATION}" != "${prev_foldersync}" ]]; then
