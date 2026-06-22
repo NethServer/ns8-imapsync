@@ -103,7 +103,10 @@ if [[ "${action}" == "start" ]]; then
         >"/etc/imapsync/${task_id}.log" || \
     {
         exit_code=$?
-        printf '%s\n%s\n' "${timestamp}" "${exit_code}" > "/etc/imapsync/${task_id}.status"
+        # exit code 143 = SIGTERM: task was manually stopped, do not overwrite last sync status
+        if [[ ${exit_code} -ne 143 ]]; then
+            printf '%s\n%s\n' "${timestamp}" "${exit_code}" > "/etc/imapsync/${task_id}.status"
+        fi
         echo "task ${task_id}: imapsync error: ${exit_code}" 1>&2
         print_log_excerpt "${task_id}" 1>&2
         exit ${exit_code}
