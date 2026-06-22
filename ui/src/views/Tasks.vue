@@ -156,7 +156,7 @@
                         {{ row.last_sync_exit_code === 0 ? $t("tasks.sync_success") : $t("tasks.sync_error") }}
                       </span>
                       <br />
-                      <small>{{ new Date(row.last_sync_timestamp * 1000).toLocaleString() }}</small>
+                      <small>{{ new Date(row.last_sync_timestamp * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) }}</small>
                     </span>
                     <span v-else>{{ $t("tasks.sync_never") }}</span>
                   </cv-data-table-cell>
