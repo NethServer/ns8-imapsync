@@ -93,6 +93,21 @@ else:
         data["service_running"]=service_status
         # Sieve filter status
         data["sieve_enabled"] = data.get("sieve_enabled", "") != "" # non-empty True, false otherwise
+        # Read last sync status
+        status_file = "imapsync/" + task_id + ".status"
+        last_sync_timestamp = None
+        last_sync_exit_code = None
+        if os.path.exists(status_file):
+            try:
+                with open(status_file) as sf:
+                    lines = sf.read().strip().split('\n')
+                if len(lines) >= 2:
+                    last_sync_timestamp = int(lines[0])
+                    last_sync_exit_code = int(lines[1])
+            except (ValueError, OSError):
+                pass
+        data["last_sync_timestamp"] = last_sync_timestamp
+        data["last_sync_exit_code"] = last_sync_exit_code
         user_properties.append(data)
     
     # Serialize the JSON read_fileect to a JSON-formatted string
