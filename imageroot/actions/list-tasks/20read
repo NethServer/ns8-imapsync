@@ -108,6 +108,7 @@ else:
                 pass
         data["last_sync_timestamp"] = last_sync_timestamp
         data["last_sync_exit_code"] = last_sync_exit_code
+        data["has_log"] = os.path.exists("imapsync/" + task_id + ".log")
         user_properties.append(data)
     
     # Serialize the JSON read_fileect to a JSON-formatted string
