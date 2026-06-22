@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import os
+import sys
+
+data = json.load(sys.stdin)
+task_id = data["task_id"]
+localuser = data["localuser"]
+
+log_file = f"imapsync/{localuser}_{task_id}.log"
+
+if os.path.exists(log_file):
+    with open(log_file) as f:
+        log_content = f.read()
+else:
+    log_content = ""
+
+json.dump({"log_content": log_content}, fp=sys.stdout)
