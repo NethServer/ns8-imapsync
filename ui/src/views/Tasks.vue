@@ -151,6 +151,16 @@
                     }}
                   </cv-data-table-cell>
                   <cv-data-table-cell>
+                    <span v-if="row.last_sync_timestamp">
+                      <span :class="row.last_sync_exit_code === 0 ? 'sync-success' : 'sync-error'">
+                        {{ row.last_sync_exit_code === 0 ? $t("tasks.sync_success") : $t("tasks.sync_error") }}
+                      </span>
+                      <br />
+                      <small>{{ new Date(row.last_sync_timestamp * 1000).toLocaleString() }}</small>
+                    </span>
+                    <span v-else>{{ $t("tasks.sync_never") }}</span>
+                  </cv-data-table-cell>
+                  <cv-data-table-cell>
                     {{ row.task_id }}
                   </cv-data-table-cell>
                   <cv-data-table-cell class="table-overflow-menu-cell">
@@ -283,6 +293,7 @@ export default {
         "remotehostname",
         "task_cron",
         "task_status",
+        "last_sync",
         "task_id",
       ],
       tasks: [],
@@ -434,6 +445,8 @@ export default {
             .split(",")
             .filter((value) => value.trim() !== "")
             .join("\n"), // Filter empty values
+          last_sync_timestamp: task.last_sync_timestamp,
+          last_sync_exit_code: task.last_sync_exit_code,
         });
       });
       this.tasks = tasks;
@@ -705,5 +718,13 @@ export default {
 }
 .kebab-height {
   height: 3rem;
+}
+.sync-success {
+  color: $support-success;
+  font-weight: 600;
+}
+.sync-error {
+  color: $support-error;
+  font-weight: 600;
 }
 </style>
