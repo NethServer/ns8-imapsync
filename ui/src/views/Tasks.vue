@@ -207,6 +207,17 @@
                           :label="$t('tasks.informations')"
                         />
                       </cv-overflow-menu-item>
+                      <cv-overflow-menu-item
+                        v-if="row.remoteusername !== '' && row.has_log"
+                        @click="downloadLog(row)"
+                        :disabled="loading.downloadLog || row.service"
+                        :data-test-id="row.localuser + '-download-log'"
+                      >
+                        <NsMenuItem
+                          :icon="Download20"
+                          :label="$t('tasks.download_log')"
+                        />
+                      </cv-overflow-menu-item>
                     </cv-overflow-menu>
                   </cv-data-table-cell>
                 </cv-data-table-row>
@@ -257,6 +268,7 @@ import Play20 from "@carbon/icons-vue/es/play--outline/20";
 import Stop20 from "@carbon/icons-vue/es/stop--outline/20";
 import Add20 from "@carbon/icons-vue/es/task--add/20";
 import Information20 from "@carbon/icons-vue/es/information/20";
+import Download20 from "@carbon/icons-vue/es/download/20";
 
 export default {
   name: "Tasks",
@@ -285,6 +297,7 @@ export default {
       Play20,
       Stop20,
       Add20,
+      Download20,
       urlCheckInterval: null,
       tablePage: [],
       tableColumns: [
@@ -323,6 +336,7 @@ export default {
         listTasks: false,
         setDeleteTask: false,
         toggleListInformations: false,
+        downloadLog: false,
       },
       error: {
         listTasks: "",
@@ -331,6 +345,7 @@ export default {
         stopAllTasks: "",
         toggleActionTask: "",
         toggleListInformations: "",
+        downloadLog: "",
       },
     };
   },
@@ -447,6 +462,7 @@ export default {
             .join("\n"), // Filter empty values
           last_sync_timestamp: task.last_sync_timestamp,
           last_sync_exit_code: task.last_sync_exit_code,
+          has_log: task.has_log,
         });
       });
       this.tasks = tasks;
@@ -697,6 +713,59 @@ export default {
     setStopAllTasksCompleted() {
       this.loading.stopAllTasks = false;
       this.listTasks();
+    },
+    async downloadLog(task) {
+      this.loading.downloadLog = true;
+      this.error.downloadLog = "";
+      const taskAction = "get-log";
+      const eventId = this.getUuid();
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.downloadLogAborted
+      );
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        (taskContext, taskResult) => {
+          this.loading.downloadLog = false;
+          const blob = new Blob([taskResult.output.log_content], {
+            type: "text/plain",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          const now = new Date();
+          const pad = (n) => String(n).padStart(2, "0");
+          const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+          a.download = `imapsync_${task.localuser}_${task.task_id}_${stamp}.log`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      );
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          data: {
+            task_id: task.task_id,
+            localuser: task.localuser,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.downloadLog = this.getErrorMessage(err);
+        this.loading.downloadLog = false;
+      }
+    },
+    downloadLogAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.downloadLog = this.$t("error.generic_error");
+      this.loading.downloadLog = false;
     },
   },
 };
