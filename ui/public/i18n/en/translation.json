@@ -122,6 +122,7 @@
         "compare_accounts": "Compare local and remote account",
         "something_wrong_cannot_list_informations": "Something went wrong, we cannot list the remote and account information",
         "informations": "Information",
+        "download_log": "Download log",
         "fetching_statistic_please_wait": "Waiting to retrieve statictics, please wait",
         "every_minutes": "Every {num} minutes",
         "configure_imapsync": "Go to the settings",
@@ -150,7 +151,8 @@
         "create-task": "Create task",
         "start-task": "Start task",
         "stop-task": "Stop task",
-        "list-informations": "List information"
+        "list-informations": "List information",
+        "get-log": "Get log"
     },
     "error": {
         "error": "Error",
