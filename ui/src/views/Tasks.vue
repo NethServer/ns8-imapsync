@@ -299,6 +299,9 @@ export default {
       Add20,
       Download20,
       urlCheckInterval: null,
+      refreshInterval: null,
+      REFRESH_INTERVAL: 10000,
+      silentRefreshing: false,
       tablePage: [],
       tableColumns: [
         "localuser",
@@ -370,19 +373,30 @@ export default {
   created() {
     this.$root.$on("reloadtasks", this.listTasks);
     this.listTasks();
+    this.refreshInterval = setInterval(this.autoRefresh, this.REFRESH_INTERVAL);
   },
   beforeDestroy() {
     // remove event listener
     this.$root.$off("reloadtasks");
+    clearInterval(this.refreshInterval);
   },
   methods: {
-    async listTasks() {
+    autoRefresh() {
+      if (!this.loading.listTasks && !this.silentRefreshing) {
+        this.listTasks(true);
+      }
+    },
+    async listTasks(silent = false) {
       // we push after object to tasks
       // we have to set to zero at first
-      this.tasks = [];
+      if (silent !== true) {
+        this.tasks = [];
+        this.loading.listTasks = true;
+      } else {
+        this.silentRefreshing = true;
+      }
       const taskAction = "list-tasks";
       const eventId = this.getUuid();
-      this.loading.listTasks = true;
       // register to task events
       this.core.$root.$once(
         `${taskAction}-aborted-${eventId}`,
@@ -409,12 +423,14 @@ export default {
         const errMessage = this.getErrorMessage(err);
         this.error.listTasks = errMessage;
         this.loading.listTasks = false;
+        this.silentRefreshing = false;
       }
     },
     listTasksAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.error.listTasks = this.$t("error.generic_error");
       this.loading.listTasks = false;
+      this.silentRefreshing = false;
     },
     listTasksCompleted(taskContext, taskResult) {
       let Config = taskResult.output;
@@ -468,6 +484,7 @@ export default {
       this.tasks = tasks;
       this.check_tasks = this.tasks.length ? true : false;
       this.loading.listTasks = false;
+      this.silentRefreshing = false;
     },
     toggleEditTask(task) {
       this.currentTask = task;
@@ -583,6 +600,13 @@ export default {
       this.loading.toggleActionTask = true;
       this.error.toggleActionTask = "";
       const taskAction = task.service ? "stop-task" : "start-task";
+      // Optimistic update: immediately reflect the expected new state
+      const found = this.tasks.find(
+        (t) => t.task_id === task.task_id && t.localuser === task.localuser
+      );
+      if (found) {
+        found.service = !task.service;
+      }
       const eventId = this.getUuid();
       // register to task error
       this.core.$root.$once(
