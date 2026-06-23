@@ -604,15 +604,18 @@ export default {
       const found = this.tasks.find(
         (t) => t.task_id === task.task_id && t.localuser === task.localuser
       );
+      const originalService = task.service;
       if (found) {
-        found.service = !task.service;
+        found.service = !originalService;
       }
       const eventId = this.getUuid();
       // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.toggleActionTaskAborted
-      );
+      this.core.$root.$once(`${taskAction}-aborted-${eventId}`, (taskResult, taskContext) => {
+        console.error(`${taskContext.action} aborted`, taskResult);
+        if (found) found.service = originalService;
+        this.error.toggleActionTask = this.$t("error.generic_error");
+        this.loading.toggleActionTask = false;
+      });
       // register to task completion
       this.core.$root.$once(
         `${taskAction}-completed-${eventId}`,
@@ -636,15 +639,11 @@ export default {
 
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
+        if (found) found.service = originalService;
         this.error.toggleActionTask = this.getErrorMessage(err);
         this.loading.toggleActionTask = false;
         return;
       }
-    },
-    toggleActionTaskAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.toggleActionTask = this.$t("error.generic_error");
-      this.loading.toggleActionTask = false;
     },
     toggleActionTaskCompleted() {
       this.loading.toggleActionTask = false;
