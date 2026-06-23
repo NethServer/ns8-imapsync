@@ -132,12 +132,12 @@ Verify Public and Shared folders were NOT synced to u2
     ${success} =    Set Variable    False
     FOR    ${i}    IN RANGE    10
         ${dovecot_out}    ${dovecot_err}    ${dovecot_rc} =    Execute Command
-        ...    runagent -m ${MID} podman exec dovecot ls u2/Maildir | grep -c "^Public\|^Shared" || echo "0"
+        ...    runagent -m ${MID} bash -c "podman exec dovecot ls u2/Maildir 2>/dev/null | grep -E '^Public|^Shared' | wc -l"
         ...    return_rc=True    return_stdout=True    return_stderr=True
         Should Be Equal As Integers    ${dovecot_rc}    0
-        ${dovecot_clean} =    Evaluate    str(${dovecot_out}).strip()
+        ${dovecot_clean} =    Evaluate    "${dovecot_out}".strip()
         Log    Attempt ${i}: found=${dovecot_clean}
-        Run Keyword If    int(${dovecot_clean}) == 0    Set Test Variable    ${success}    True
+        Run Keyword If    '${dovecot_clean}' == '0'    Set Test Variable    ${success}    True
         Run Keyword If    ${success}    Exit For Loop
         Sleep    1s
     END
@@ -145,11 +145,16 @@ Verify Public and Shared folders were NOT synced to u2
 
 Verify no permission errors in imapsync logs
     ${log_out}    ${log_err}    ${log_rc} =    Execute Command
-    ...    runagent -m ${MID} podman exec imapsync grep -i "NOPERM\|Could not select" /etc/imapsync/public_shared_test.log || echo "OK"
+    ...    runagent -m ${MID} bash -c "podman exec imapsync grep -i 'NOPERM|Could not select' /etc/imapsync/public_shared_test.log && echo FOUND || echo OK"
     ...    return_rc=True    return_stdout=True    return_stderr=True
     Should Be Equal As Integers    ${log_rc}    0
-    ${log_clean} =    Evaluate    str(${log_out}).strip()
+    ${log_clean} =    Evaluate    "${log_out}".strip()
     Should Be Equal    ${log_clean}    OK    No permission errors should occur
+
+Delete public_shared_test task
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"localuser": "u2","task_id": "public_shared_test"}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
 
 Check if imapsync can remove a task
     ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
