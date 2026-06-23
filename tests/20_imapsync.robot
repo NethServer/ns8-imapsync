@@ -125,3 +125,33 @@ Verify list-tasks is empty after delete-task
     ${ocfg}=    Run task    module/${imapsync_module_id}/list-tasks    {}
     Log    ${ocfg}    DEBUG
     Should Be Empty    ${ocfg['user_properties']}
+
+Test get-log action returns empty log for non-existent task
+    ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "000000", "localuser": "u2"}
+    Should Be Equal As Strings    ${result['log_content']}    ${EMPTY}
+
+Test get-log action with valid task id format
+    ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "28ofi1", "localuser": "u2"}
+    Log    ${result}    DEBUG
+    ${has_log_content} =    Evaluate    'log_content' in ${result}
+    Should Be True    ${has_log_content}
+
+Test get-log action rejects invalid task_id format
+    Run Keyword And Expect Error    *Validation errors*    Run task    module/${imapsync_module_id}/get-log    {"task_id": "invalid_task", "localuser": "u2"}
+
+Test get-log action rejects path traversal in task_id
+    Run Keyword And Expect Error    *Validation errors*    Run task    module/${imapsync_module_id}/get-log    {"task_id": "../etc", "localuser": "u2"}
+
+Test get-log action rejects invalid localuser format
+    Run Keyword And Expect Error    *Validation errors*    Run task    module/${imapsync_module_id}/get-log    {"task_id": "28ofi1", "localuser": "invalid@user"}
+
+Test list-tasks returns new sync status fields
+    ${result} =    Run task    module/${imapsync_module_id}/list-tasks    {}
+    Log    ${result}    DEBUG
+    ${has_user_properties} =    Evaluate    'user_properties' in ${result}
+    Should Be True    ${has_user_properties}
+    ${task_count} =    Get Length    ${result['user_properties']}
+    Log    Task count: ${task_count}    DEBUG
+    Run Keyword If    ${task_count} > 0    Evaluate    'last_sync_timestamp' in ${result['user_properties'][0]}
+    Run Keyword If    ${task_count} > 0    Evaluate    'last_sync_exit_code' in ${result['user_properties'][0]}
+    Run Keyword If    ${task_count} > 0    Evaluate    'has_log' in ${result['user_properties'][0]}
