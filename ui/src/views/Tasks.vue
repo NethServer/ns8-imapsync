@@ -151,13 +151,17 @@
                     }}
                   </cv-data-table-cell>
                   <cv-data-table-cell>
-                    <span v-if="row.last_sync_timestamp">
-                      <span :class="row.last_sync_exit_code === 0 ? 'sync-success' : 'sync-error'">
-                        {{ row.last_sync_exit_code === 0 ? $t("tasks.sync_success") : $t("tasks.sync_error") }}
-                      </span>
-                      <br />
-                      <small>{{ new Date(row.last_sync_timestamp * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) }}</small>
-                    </span>
+                    <div v-if="row.last_sync_timestamp">
+                      <NsTag
+                        :kind="row.last_sync_exit_code === 0 ? 'green' : 'red'"
+                        :label="row.last_sync_exit_code === 0 ? $t('tasks.sync_success') : $t('tasks.sync_error')"
+                        size="sm"
+                        class="no-margin"
+                      />
+                      <div class="sync-timestamp">
+                        {{ new Date(row.last_sync_timestamp * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) }}
+                      </div>
+                    </div>
                     <span v-else>{{ $t("tasks.sync_never") }}</span>
                   </cv-data-table-cell>
                   <cv-data-table-cell>
@@ -811,12 +815,9 @@ export default {
 .kebab-height {
   height: 3rem;
 }
-.sync-success {
-  color: $support-success;
-  font-weight: 600;
-}
-.sync-error {
-  color: $support-error;
-  font-weight: 600;
+.sync-timestamp {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: $text-02;
 }
 </style>
