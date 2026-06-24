@@ -151,16 +151,14 @@
                     }}
                   </cv-data-table-cell>
                   <cv-data-table-cell>
-                    <div v-if="row.last_sync_timestamp">
+                    <div v-if="row.last_sync_timestamp" class="sync-status">
                       <NsTag
                         :kind="row.last_sync_exit_code === 0 ? 'green' : 'red'"
                         :label="row.last_sync_exit_code === 0 ? $t('tasks.sync_success') : $t('tasks.sync_error')"
                         size="sm"
-                        class="no-margin"
+                        class="no-margin mb-1"
                       />
-                      <div class="sync-timestamp">
-                        {{ new Date(row.last_sync_timestamp * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) }}
-                      </div>
+                      {{ new Date(row.last_sync_timestamp * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) }}
                     </div>
                     <span v-else>{{ $t("tasks.sync_never") }}</span>
                   </cv-data-table-cell>
@@ -215,7 +213,6 @@
                         v-if="row.remoteusername !== '' && row.has_log"
                         @click="downloadLog(row)"
                         :disabled="loading.downloadLog || row.service"
-                        :data-test-id="row.localuser + '-download-log'"
                       >
                         <NsMenuItem
                           :icon="Download20"
@@ -815,9 +812,10 @@ export default {
 .kebab-height {
   height: 3rem;
 }
-.sync-timestamp {
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  color: $text-02;
+.sync-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
 }
 </style>
