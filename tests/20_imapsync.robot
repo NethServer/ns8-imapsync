@@ -115,7 +115,48 @@ Check the imap folder informations of u2
     Should Be True    7000 <= int(${ocfg['host2Sizes']}) < 8000 # the value can change
     Should Be True                 ${ocfg['status']}
 
-Check if imapsync can remove a task 
+Create Public and Shared folders with subfolders on u3
+    Execute Command    runagent -m ${MID} podman exec dovecot doveadm mailbox create -u u3 Public    return_rc=True
+    Execute Command    runagent -m ${MID} podman exec dovecot doveadm mailbox create -u u3 Public/Junk    return_rc=True
+    Execute Command    runagent -m ${MID} podman exec dovecot doveadm mailbox create -u u3 Shared    return_rc=True
+    Execute Command    runagent -m ${MID} podman exec dovecot doveadm mailbox create -u u3 Shared/estero    return_rc=True
+    Execute Command    runagent -m ${MID} podman exec dovecot doveadm mailbox create -u u3 Shared/estero/Archive/2020    return_rc=True
+
+Check if imapsync excludes Public and Shared subfolders
+    ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "5m","delete_local": false,"delete_remote": true,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "${mail_server_ip}","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "public_shared_test"}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+
+Verify Public and Shared folders were NOT synced to u2
+    ${success} =    Set Variable    False
+    FOR    ${i}    IN RANGE    10
+        ${dovecot_out}    ${dovecot_err}    ${dovecot_rc} =    Execute Command
+        ...    runagent -m ${MID} bash -c "podman exec dovecot ls u2/Maildir 2>/dev/null | grep -E '^Public|^Shared' | wc -l"
+        ...    return_rc=True    return_stdout=True    return_stderr=True
+        Should Be Equal As Integers    ${dovecot_rc}    0
+        ${dovecot_clean} =    Evaluate    "${dovecot_out}".strip()
+        Log    Attempt ${i}: found=${dovecot_clean}
+        Run Keyword If    '${dovecot_clean}' == '0'    Set Test Variable    ${success}    True
+        Run Keyword If    ${success}    Exit For Loop
+        Sleep    1s
+    END
+    Should Be True    ${success}    Public and Shared folders should NOT be synced
+
+Verify no permission errors in imapsync logs
+    ${log_out}    ${log_err}    ${log_rc} =    Execute Command
+    ...    runagent -m ${MID} bash -c "podman exec imapsync grep -i 'NOPERM|Could not select' /etc/imapsync/public_shared_test.log && echo FOUND || echo OK"
+    ...    return_rc=True    return_stdout=True    return_stderr=True
+    Should Be Equal As Integers    ${log_rc}    0
+    ${log_clean} =    Evaluate    "${log_out}".strip()
+    Should Be Equal    ${log_clean}    OK    No permission errors should occur
+
+Delete public_shared_test task
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"localuser": "u2","task_id": "public_shared_test"}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+
+Check if imapsync can remove a task
     ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
     ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"localuser": "u2","task_id": "28ofi1"}'
     ...    return_rc=True  return_stdout=False
