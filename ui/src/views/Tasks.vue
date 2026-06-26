@@ -30,6 +30,13 @@
             :description="core.$t('common.use_landscape_mode_description')"
             class="landscape-warning"
           />
+          <NsInlineNotification
+            v-if="warning.downloadLog"
+            kind="warning"
+            :description="warning.downloadLog"
+            :showCloseButton="true"
+            @close="warning.downloadLog = ''"
+          />
         </cv-column>
       </cv-row>
       <cv-row class="toolbar">
@@ -349,6 +356,9 @@ export default {
         stopAllTasks: "",
         toggleActionTask: "",
         toggleListInformations: "",
+        downloadLog: "",
+      },
+      warning: {
         downloadLog: "",
       },
     };
@@ -741,6 +751,7 @@ export default {
     async downloadLog(task) {
       this.loading.downloadLog = true;
       this.error.downloadLog = "";
+      this.warning.downloadLog = "";
       const taskAction = "get-log";
       const eventId = this.getUuid();
       this.core.$root.$once(
@@ -751,6 +762,9 @@ export default {
         `${taskAction}-completed-${eventId}`,
         (taskContext, taskResult) => {
           this.loading.downloadLog = false;
+          if (taskResult.output.truncated) {
+            this.warning.downloadLog = this.$t("tasks.log_truncated");
+          }
           const blob = new Blob([taskResult.output.log_content], {
             type: "text/plain",
           });

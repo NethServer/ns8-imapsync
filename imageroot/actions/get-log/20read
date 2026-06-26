@@ -17,13 +17,23 @@ base_dir = os.path.realpath("imapsync")
 log_path = os.path.realpath(os.path.join(base_dir, f"{localuser}_{task_id}.log"))
 
 if not log_path.startswith(base_dir + os.sep):
-    json.dump({"log_content": ""}, fp=sys.stdout)
+    json.dump({"log_content": "", "truncated": False}, fp=sys.stdout)
     sys.exit(0)
 
+LOG_LIMIT = 100 * 1024  # 100 KB
+
+truncated = False
 if os.path.exists(log_path):
+    size = os.path.getsize(log_path)
     with open(log_path, encoding="utf-8", errors="replace") as f:
-        log_content = f.read()
+        if size > LOG_LIMIT:
+            f.seek(size - LOG_LIMIT)
+            f.readline()  # discard partial first line
+            log_content = f.read()
+            truncated = True
+        else:
+            log_content = f.read()
 else:
     log_content = ""
 
-json.dump({"log_content": log_content}, fp=sys.stdout)
+json.dump({"log_content": log_content, "truncated": truncated}, fp=sys.stdout)
