@@ -129,12 +129,25 @@ Verify list-tasks is empty after delete-task
 Test get-log action returns empty log for non-existent task
     ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "000000", "localuser": "u2"}
     Should Be Equal As Strings    ${result['log_content']}    ${EMPTY}
+    Should Be Equal    ${result['truncated']}    ${False}
 
 Test get-log action with valid task id format
     ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "28ofi1", "localuser": "u2"}
     Log    ${result}    DEBUG
     ${has_log_content} =    Evaluate    'log_content' in ${result}
     Should Be True    ${has_log_content}
+    ${has_truncated} =    Evaluate    'truncated' in ${result}
+    Should Be True    ${has_truncated}
+
+Test get-log action truncates log larger than 100KB
+    [Documentation]    Create a 200KB log file, verify get-log returns at most 100KB and truncated=True
+    ${logfile} =    Set Variable    /home/${imapsync_module_id}/.config/state/imapsync/u2_trunc1.log
+    Execute Command    python3 -c "open('${logfile}', 'w').write('x\\n' * 102400)"
+    ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "trunc1", "localuser": "u2"}
+    Should Be Equal    ${result['truncated']}    ${True}
+    ${content_len} =    Get Length    ${result['log_content']}
+    Should Be True    ${content_len} <= 102400
+    [Teardown]    Execute Command    rm -f ${logfile}
 
 Test get-log action rejects invalid task_id format
     Run Keyword And Expect Error    *Validation errors*    Run task    module/${imapsync_module_id}/get-log    {"task_id": "invalid_task", "localuser": "u2"}
