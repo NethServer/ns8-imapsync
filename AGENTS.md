@@ -307,15 +307,29 @@ agent.assert_exp(retval['exit_code'] == 0, "configure-module failed!")
 
 Dump/cleanup scripts (`imageroot/bin/module-dump-state`, `imageroot/bin/module-cleanup-state`) only run during backup — not during clone or restore.
 
-### MariaDB volume persistence
-Database data lives in a named Podman volume declared in `build-images.sh`:
-```bash
---label="org.nethserver.volumes=mysql-data"
-```
-And mounted in the systemd service:
+### Volume persistence
+Named Podman volumes are created automatically on first use — no label required.
+Mount in the systemd service:
 ```
 --volume mysql-data:/var/lib/mysql/:Z
+--volume postgres-data:/var/lib/postgresql/data:Z
 ```
+
+### Additional disks
+For large-data modules, declare named volumes as candidates for placement on additional disks:
+```bash
+--label="org.nethserver.volumes=mysql-data"          # single volume
+--label="org.nethserver.volumes=mysql-data piler_store"  # multiple, space-separated
+```
+When the module is installed and the node has an additional disk configured,
+the UI presents a modal asking the sysadmin where to store the data.
+Without the label, the volume lands in the Podman default path under the module's home directory.
+
+Additional disks are **slower than the root disk but have bigger size** — only
+declare volumes suitable for bulk data (databases, mail stores, media files),
+not config or small-state volumes.
+
+Volume assignments are stored in `/etc/nethserver/volumes.conf` and managed via `volumectl`.
 
 ### PostgreSQL dump/restore pattern
 Dump uses custom format (`--format=c`) for `pg_restore` compatibility:
