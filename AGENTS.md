@@ -39,21 +39,21 @@ Format: `<scope>:<role>`. Multiple roles on the same scope: `node:fwadm,portsadm
 | `<module>@node` | first instance of module on same node |
 | `<module>@any` | all instances of that module |
 
-**Available roles (by module that defines them):**
+**Available roles:**
 
-| Role | Defined by | Grants access to |
+| Role | Defined by | Purpose |
 |---|---|---|
-| `fwadm` | ns8-core / node | `add-public-service`, `remove-public-service`, `add-custom-zone`, `remove-custom-zone`, `add-rich-rules`, `remove-rich-rules` |
-| `portsadm` | ns8-core / node | `allocate-ports`, `deallocate-ports` |
-| `tunadm` | ns8-core / node | TUN device management (includes fwadm actions) |
+| `fwadm` | ns8-core / node | firewall rules (public services, zones, rich rules) |
+| `portsadm` | ns8-core / node | port allocation |
+| `tunadm` | ns8-core / node | TUN device + fwadm actions |
 | `reader` | ns8-core | `get-*`, `show-*`, `read-*` |
-| `routeadm` | ns8-traefik | `set-route`, `get-route`, `list-routes` |
-| `certadm` | ns8-traefik | certificate management actions |
-| `fulladm` | ns8-traefik | routeadm + certadm combined |
-| `mailadm` | ns8-mail | `reveal-master-credentials`, `get-*`, `list-*`, `set-always-bcc`, `add-relay-rule`, `alter-relay-rule`, `remove-relay-rule` |
+| `routeadm` | ns8-traefik | manage Traefik routes |
+| `certadm` | ns8-traefik | certificate management |
+| `fulladm` | ns8-traefik | routeadm + certadm |
+| `mailadm` | ns8-mail | master credentials, relay rules, BCC |
 | `accountconsumer` | cluster | bind/use a user domain (LDAP) |
 | `accountprovider` | cluster | provide a user domain |
-| `selfadm` | built-in | module's own actions (auto-granted at install) |
+| `selfadm` | built-in | module's own actions (auto-granted) |
 
 ### selfadm — module calling its own actions
 A module can grant itself the right to call its own actions via Redis in
@@ -142,37 +142,16 @@ agent.run_helper('systemctl', '--user', '-T', 'try-restart', 'mymodule.service')
 `agent.certificate_event_matches(event, hostname)` — built-in helper for `certificate-changed`.
 
 ### Built-in platform events
-
-**Module channel** (`module/<id>/event/<name>`):
-- `user-domain-changed` — `{"node_id":INT,"domain":STRING,"domains":LIST}`
-- `ldap-provider-changed` — `{"domain":STRING,"key":STRING}`
-- `certificate-changed` — TLS cert renewed for a hostname
-- `mail-settings-changed` — mail module config changed (fired by ns8-mail)
-- `backup-status-changed` — `{"node_id":INT,"module_id":STRING,"backup_id":INT}`
-
-**Node channel** (`node/<id>/event/<name>`):
-- `fqdn-changed` — `{"hostname":STRING,"domain":STRING,"node":INT}`
-
-**Cluster channel** (`cluster/event/<name>`):
-- `module-added`, `module-removed`, `leader-changed`, `backup-destination-changed`
+Module channel `module/<id>/event/<name>`: `user-domain-changed`, `ldap-provider-changed`,
+`certificate-changed`, `mail-settings-changed`, `backup-status-changed`.
+Node channel `node/<id>/event/<name>`: `fqdn-changed`.
+Cluster channel `cluster/event/<name>`: `module-added`, `module-removed`, `leader-changed`.
 
 ## Systemd Services
 
 ### Naming convention
 - Single service: `<module>.service`
 - Multi-service (pod pattern): `<module>.service` (pod master) + `<component>-app.service` (children)
-
-### Single service (simple module)
-```ini
-[Unit]
-Description=My service
-[Service]
-EnvironmentFile=%S/state/environment
-ExecStart=/usr/bin/podman run ...
-Restart=always
-[Install]
-WantedBy=default.target
-```
 
 ### Multi-service ordering (pod pattern)
 Master pod declares `Before=` and `Requires=` for all children.
@@ -223,127 +202,25 @@ volumes/myvolume
 ### Restore sequence
 `imageroot/actions/restore-module/` — numbered steps, `10restore` inherited (Restic).
 
-**`06copyenv`** — restore env vars from backup (runs before `10restore` overwrites state):
-```python
-import sys, json, agent
-request = json.load(sys.stdin)
-for evar in ["MAIL_SERVER", "TRAEFIK_HOST", ...]:
-    agent.set_env(evar, request['environment'][evar])
-```
-
-**`50call-configure-module`** — reconfigure after restore (common to both DB engines):
-```python
-import sys, json, agent, os
-request = json.load(sys.stdin)
-renv = request['environment']
-retval = agent.tasks.run(agent_id=os.environ['AGENT_ID'],
-    action='configure-module', data={
-        "mail_server": renv["MAIL_SERVER"],
-        "host": renv["TRAEFIK_HOST"],
-        # ... map all required config fields
-    })
-agent.assert_exp(retval['exit_code'] == 0, "configure-module failed!")
-```
+- `06copyenv` — restore env vars from `request['environment']` via `agent.set_env()`
+- `40restoreDB` — load SQL dump via ephemeral container (see patterns below)
+- `50call-configure-module` — call `configure-module` with restored env vars via `agent.tasks.run()`
 
 ### MariaDB
-**`imageroot/bin/module-dump-state`** — CWD is `state/`, runs before Restic backup:
-```bash
-#!/bin/bash
-set -e
-if ! systemctl --user -q is-active mymodule.service; then exit 0; fi
-podman exec mariadb-app mysqldump \
-    --databases mydb \
-    --default-character-set=utf8mb4 \
-    --single-transaction --quick --add-drop-table \
-    --skip-dump-date > mydb.sql
-```
+- **Dump** (`imageroot/bin/module-dump-state`, CWD=`state/`): `podman exec mariadb-app mysqldump --databases mydb --default-character-set=utf8mb4 --single-transaction --quick --add-drop-table --skip-dump-date > mydb.sql`
+- **Cleanup** (`imageroot/bin/module-cleanup-state`): `rm -vf mydb.sql`
+- **Restore** (`40restoreDB`): move `mydb.sql` into `initdb.d/`, add `zz_restore.sh` that calls `docker_temp_server_stop`, launch ephemeral `${MARIADB_IMAGE}` with `--volume=./initdb.d:/docker-entrypoint-initdb.d:z --volume mysql-data:/var/lib/mysql/:Z`. MariaDB entrypoint auto-executes the SQL, then the script stops the container.
+- **Reference**: ns8-sogo
 
-**`imageroot/bin/module-cleanup-state`** — runs after backup:
-```bash
-#!/bin/bash
-rm -vf mydb.sql
-```
-
-**`imageroot/actions/restore-module/40restoreDB`:**
-```bash
-#!/bin/bash
-set -e -o pipefail
-exec 1>&2
-mkdir -vp initdb.d
-mv -v mydb.sql initdb.d
-cat - >initdb.d/zz_restore.sh <<'EOS'
-set -- true
-docker_temp_server_stop
-exit 0
-EOS
-trap 'rm -rfv initdb.d/' EXIT
-podman run --rm --interactive --network=none \
-    --volume=./initdb.d:/docker-entrypoint-initdb.d:z \
-    --volume mysql-data:/var/lib/mysql/:Z \
-    --env MARIADB_ROOT_PASSWORD=Nethesis,1234 \
-    --env MARIADB_DATABASE=mydb \
-    --env MARIADB_USER=myuser \
-    --env MARIADB_PASSWORD=Nethesis,1234 \
-    --replace --name=restore_db \
-    ${MARIADB_IMAGE}
-```
-MariaDB entrypoint auto-executes files in `/docker-entrypoint-initdb.d/`, then
-`zz_restore.sh` calls `docker_temp_server_stop` to exit.
-
-`state-include.conf`:
-```
-state/mydb.sql
-volumes/mysql-data
-```
+`state-include.conf`: `state/mydb.sql` + `volumes/mysql-data`
 
 ### PostgreSQL
-Dump uses custom format (`--format=c`) for `pg_restore` compatibility.
+- **Dump** (`imageroot/bin/module-dump-state`): `podman exec postgres-app pg_dump -U myuser --format=c mydb > mydb.pg_dump` (custom format for `pg_restore`)
+- **Cleanup** (`imageroot/bin/module-cleanup-state`): `rm -vf mydb.pg_dump`
+- **Restore** (`40restore-postgres`): create `restore/mydb_restore.sh` with `pg_restore --no-owner --no-privileges`, launch ephemeral `${POSTGRES_IMAGE}` with dump **piped via stdin** (`< mydb.pg_dump`), script calls `docker_temp_server_stop` on exit.
+- **Reference**: ns8-mattermost
 
-**`imageroot/bin/module-dump-state`:**
-```bash
-#!/bin/bash
-set -e
-podman exec postgres-app pg_dump -U myuser --format=c mydb > mydb.pg_dump
-```
-
-**`imageroot/bin/module-cleanup-state`:**
-```bash
-#!/bin/bash
-rm -vf mydb.pg_dump
-```
-
-**`imageroot/actions/restore-module/40restore-postgres`:**
-```bash
-#!/bin/bash
-set -e -o pipefail
-exec 1>&2
-mkdir -vp restore
-cat - >restore/mydb_restore.sh <<'EOS'
-pg_restore --no-owner --no-privileges -U myuser -d mydb
-ec=$?
-docker_temp_server_stop
-exit $ec
-EOS
-# Dump piped via stdin into the ephemeral container
-podman run --rm --interactive --network=none \
-    --volume=./restore:/docker-entrypoint-initdb.d/:Z \
-    --volume=postgres-data:/var/lib/postgresql/data:Z \
-    --replace --name=restore_db \
-    --env POSTGRES_USER=myuser \
-    --env POSTGRES_PASSWORD=Nethesis,1234 \
-    --env POSTGRES_DB=mydb \
-    "${POSTGRES_IMAGE}" < mydb.pg_dump
-rm -rfv restore/ mydb.pg_dump
-```
-The restore script reads the dump from stdin via `pg_restore`, then calls
-`docker_temp_server_stop` to exit the container.
-
-`state-include.conf`:
-```
-state/mydb.pg_dump
-volumes/postgres-data
-volumes/app-data
-```
+`state-include.conf`: `state/mydb.pg_dump` + `volumes/postgres-data`
 
 ### Clone vs restore
 - **restore-module**: Restic restores files listed in `etc/state-include.conf` → `40restoreDB` loads SQL dump → `50call-configure-module` reconfigures
