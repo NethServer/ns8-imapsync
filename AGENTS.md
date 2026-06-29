@@ -119,27 +119,11 @@ redis-cli PUBLISH "module/mymodule1/event/my-settings-changed" '{"module_id":"my
 
 ### Handlers
 Live in `imageroot/events/<event-name>/` — executable scripts, work like action steps.
-Payload arrives on **stdin**. stdout/stderr go to system log.
-**Non-zero exit halts remaining steps** — further scripts in the same event directory are skipped.
-
+Payload arrives on **stdin** as JSON. **Non-zero exit halts remaining steps.**
 Injected env vars: `AGENT_EVENT_SOURCE`, `AGENT_EVENT_NAME`.
 
-Filter early — `sys.exit(0)` if event not relevant to this instance:
-```python
-#!/usr/bin/env python3
-import json, sys, agent, os
-
-event = json.load(sys.stdin)
-
-if event.get('module_uuid') != os.getenv('MAIL_SERVER', ''):
-    sys.exit(0)  # not our mail server, ignore
-
-agent.set_env("MAIL_HOST", event['host'])
-agent.run_helper('systemctl', '--user', '-T', 'try-restart', 'mymodule.service').check_returncode()
-```
-
-`-T` removes the default timeout — use for service restarts.
-`agent.certificate_event_matches(event, hostname)` — built-in helper for `certificate-changed`.
+Pattern: `event = json.load(sys.stdin)` → filter with `sys.exit(0)` if not relevant → apply change → `agent.run_helper('systemctl', '--user', '-T', 'try-restart', ...)`.
+`-T` removes the default timeout. `agent.certificate_event_matches(event, hostname)` — built-in helper for `certificate-changed`.
 
 ### Built-in platform events
 Module channel `module/<id>/event/<name>`: `user-domain-changed`, `ldap-provider-changed`,
@@ -154,26 +138,11 @@ Cluster channel `cluster/event/<name>`: `module-added`, `module-removed`, `leade
 - Multi-service (pod pattern): `<module>.service` (pod master) + `<component>-app.service` (children)
 
 ### Multi-service ordering (pod pattern)
-Master pod declares `Before=` and `Requires=` for all children.
-Children use `BindsTo=` (stops if pod dies) and `After=` (start order):
+- Pod master (`<module>.service`): `Requires=` + `Before=` all children
+- DB service: `BindsTo=<module>.service`, `After=<module>.service`, `Before=app-app.service`
+- App service: `BindsTo=<module>.service`, `After=<module>.service db-app.service`
 
-```ini
-# <module>.service — pod master
-[Unit]
-Requires=db-app.service app-app.service
-Before=db-app.service app-app.service
-
-# db-app.service — database (must be ready before app)
-[Unit]
-BindsTo=<module>.service
-After=<module>.service
-Before=app-app.service
-
-# app-app.service — main application
-[Unit]
-BindsTo=<module>.service
-After=<module>.service db-app.service
-```
+`BindsTo=` ensures children stop automatically if the pod dies.
 
 ### Conditional service start (configure-module/80start_services)
 Services are enabled and started only after successful configuration.
@@ -260,22 +229,7 @@ Volume assignments are stored in `/etc/nethserver/volumes.conf` and managed via 
 Scripts in `imageroot/update-module.d/` run on `update-module` in lexicographic order.
 If a script fails, execution continues with the next one — each script is independent.
 
-Recommended numbering layout:
-```
-05migrate-data        # pre-restart: data/schema migrations
-06update-config       # pre-restart: config file transformations
-30restart             # restart the service
-50reindex             # post-restart: rebuild indexes, caches
-60cleanup             # post-restart: remove stale files/volumes
-```
-
-```bash
-# 30restart — typical restart script
-#!/bin/bash
-set -e
-systemctl --user try-restart <module>.service
-```
-
+Recommended layout: `05`-`06` pre-restart migrations, `30restart` (`systemctl --user try-restart`), `50`-`60` post-restart reindex/cleanup.
 Version-specific migrations go before `30restart` so the new code starts on updated data.
 
 ## Frontend: Vue.js 2
