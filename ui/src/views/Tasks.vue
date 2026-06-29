@@ -180,6 +180,8 @@
                     >
                       <cv-overflow-menu-item
                         @click="toggleEditTask(row)"
+                        :disabled="row.service"
+                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
                         :data-test-id="row.localuser + '-edit-task'"
                       >
                         <NsMenuItem :icon="Edit20" :label="$t('tasks.edit')" />
@@ -200,6 +202,8 @@
                       <cv-overflow-menu-item
                         v-if="row.remoteusername !== ''"
                         @click="toggleDeleteTask(row)"
+                        :disabled="row.service"
+                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
                         :data-test-id="row.localuser + '-delete-task'"
                       >
                         <NsMenuItem
@@ -221,6 +225,7 @@
                         v-if="row.remoteusername !== '' && row.has_log"
                         @click="downloadLog(row)"
                         :disabled="loading.downloadLog || row.service"
+                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
                       >
                         <NsMenuItem
                           :icon="Download20"

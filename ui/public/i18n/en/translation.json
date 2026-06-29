@@ -63,6 +63,7 @@
         "stopped": "Stopped",
         "not_configured": "Not configured",
         "running": "Running",
+        "stop_service_first": "Stop the service before editing or deleting",
         "create_task": "Create task",
         "edit_task": "Edit task",
         "remoteusername": "Remote user",
