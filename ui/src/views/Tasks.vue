@@ -163,7 +163,7 @@
                         :kind="row.last_sync_exit_code === 0 ? 'green' : 'red'"
                         :label="row.last_sync_exit_code === 0 ? $t('tasks.sync_success') : $t('tasks.sync_error')"
                         size="sm"
-                        class="no-margin mb-1"
+                        class="no-margin"
                       />
                       {{ new Date(row.last_sync_timestamp * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) }}
                     </div>
