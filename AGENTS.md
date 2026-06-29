@@ -196,12 +196,15 @@ After=<module>.service db-app.service
 ```
 
 ### Conditional service start (configure-module/80start_services)
-Services are enabled and started only after successful configuration:
+Services are enabled and started only after successful configuration.
+For a pod module, **all services must be named explicitly** to guarantee
+the `Before=`/`After=` start order is respected — systemd does not cascade
+restarts to children automatically:
 ```bash
 systemctl --user enable <module>.service
-systemctl --user restart <module>.service
-# Use try-restart if the service may not be running yet
-systemctl --user try-restart <module>.service
+systemctl --user restart <module>.service db-app.service app-app.service
+# Use try-restart if the service may not be running yet (e.g. first configure)
+systemctl --user try-restart <module>.service db-app.service app-app.service
 ```
 
 ## Backup & Restore
