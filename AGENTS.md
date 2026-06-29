@@ -30,14 +30,7 @@ Authorizations are declared as container labels in `build-images.sh`:
 ```
 Format: `<scope>:<role>`. Multiple roles on the same scope: `node:fwadm,portsadm`.
 
-**Scopes:**
-
-| Scope | Target |
-|---|---|
-| `node` | node agent |
-| `cluster` | cluster agent |
-| `<module>@node` | first instance of module on same node |
-| `<module>@any` | all instances of that module |
+**Scopes:** `node` (node agent), `cluster` (cluster agent), `<module>@node` (first instance on same node), `<module>@any` (all instances of that module).
 
 **Available roles:**
 
@@ -159,14 +152,7 @@ systemctl --user try-restart <module>.service db-app.service app-app.service
 ## Backup & Restore
 
 ### Declaring what to back up (state-include.conf)
-`imageroot/etc/state-include.conf` lists paths relative to the module home:
-```
-state/mydata
-volumes/myvolume
-```
-- `state/` paths → files in `AGENT_STATE_DIR`
-- `volumes/<name>` → Podman volume `<name>` (rootless) or `<module_id>-<name>` (rootful)
-- `state/environment` is always included automatically
+`imageroot/etc/state-include.conf` lists paths relative to the module home. Use `state/<file>` for files in `AGENT_STATE_DIR` and `volumes/<name>` for Podman volumes (`<module_id>-<name>` when rootful). `state/environment` is always included automatically.
 
 ### Restore sequence
 `imageroot/actions/restore-module/` — numbered steps, `10restore` inherited (Restic).
