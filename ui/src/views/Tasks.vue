@@ -400,6 +400,7 @@ export default {
     async listTasks(silent = false) {
       // we push after object to tasks
       // we have to set to zero at first
+      clearTimeout(this.silentRefreshTimeout);
       if (silent !== true) {
         this.tasks = [];
         this.loading.listTasks = true;
