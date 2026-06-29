@@ -83,7 +83,8 @@ Modules with a UI must implement:
 ```python
 import agent
 rdb = agent.redis_connect(use_replica=True)   # local replica, resilient at startup
-agent.set_env("KEY", "value")                  # persist env var to Redis + filesystem
+agent.set_env("KEY", "value")                  # add/update env var in state/environment
+agent.unset_env("KEY")                         # remove env var from state/environment
 
 # Cross-module RPC call
 agent.tasks.run(f"module/{other_module_id}", action="action-name", data={...})
