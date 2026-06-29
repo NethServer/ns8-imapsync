@@ -187,6 +187,7 @@
                       <cv-overflow-menu-item
                         v-if="row.remoteusername !== ''"
                         @click="toggleActionTask(row)"
+                        :disabled="loading.toggleActionTask"
                         :data-test-id="row.localuser + '-action-task'"
                       >
                         <NsMenuItem
@@ -310,6 +311,7 @@ export default {
       refreshInterval: null,
       REFRESH_INTERVAL: 10000,
       silentRefreshing: false,
+      silentRefreshTimeout: null,
       tablePage: [],
       tableColumns: [
         "localuser",
@@ -382,14 +384,12 @@ export default {
     next();
   },
   created() {
-    this.$root.$on("reloadtasks", this.listTasks);
     this.listTasks();
     this.refreshInterval = setInterval(this.autoRefresh, this.REFRESH_INTERVAL);
   },
   beforeDestroy() {
-    // remove event listener
-    this.$root.$off("reloadtasks");
     clearInterval(this.refreshInterval);
+    clearTimeout(this.silentRefreshTimeout);
   },
   methods: {
     autoRefresh() {
@@ -417,6 +417,10 @@ export default {
         `${taskAction}-completed-${eventId}`,
         this.listTasksCompleted
       );
+      this.silentRefreshTimeout = setTimeout(() => {
+        this.silentRefreshing = false;
+        this.loading.listTasks = false;
+      }, this.REFRESH_INTERVAL * 3);
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
@@ -435,6 +439,7 @@ export default {
         this.error.listTasks = errMessage;
         this.loading.listTasks = false;
         this.silentRefreshing = false;
+        clearTimeout(this.silentRefreshTimeout);
       }
     },
     listTasksAborted(taskResult, taskContext) {
@@ -442,6 +447,7 @@ export default {
       this.error.listTasks = this.$t("error.generic_error");
       this.loading.listTasks = false;
       this.silentRefreshing = false;
+      clearTimeout(this.silentRefreshTimeout);
     },
     listTasksCompleted(taskContext, taskResult) {
       let Config = taskResult.output;
@@ -496,6 +502,8 @@ export default {
       this.check_tasks = this.tasks.length ? true : false;
       this.loading.listTasks = false;
       this.silentRefreshing = false;
+      this.error.listTasks = "";
+      clearTimeout(this.silentRefreshTimeout);
     },
     toggleEditTask(task) {
       this.currentTask = task;
@@ -776,7 +784,7 @@ export default {
           const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
           a.download = `imapsync_${task.localuser}_${task.task_id}_${stamp}.log`;
           a.click();
-          URL.revokeObjectURL(url);
+          setTimeout(() => URL.revokeObjectURL(url), 100);
         }
       );
       const res = await to(

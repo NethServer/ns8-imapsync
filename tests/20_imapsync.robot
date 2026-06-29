@@ -159,12 +159,13 @@ Test get-log action rejects invalid localuser format
     Run Keyword And Expect Error    *Validation errors*    Run task    module/${imapsync_module_id}/get-log    {"task_id": "28ofi1", "localuser": "invalid@user"}
 
 Test list-tasks returns new sync status fields
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "5m","delete_local": false,"delete_remote": false,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "127.0.0.1","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "status1"}'
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0
     ${result} =    Run task    module/${imapsync_module_id}/list-tasks    {}
     Log    ${result}    DEBUG
-    ${has_user_properties} =    Evaluate    'user_properties' in ${result}
-    Should Be True    ${has_user_properties}
-    ${task_count} =    Get Length    ${result['user_properties']}
-    Log    Task count: ${task_count}    DEBUG
-    Run Keyword If    ${task_count} > 0    Evaluate    'last_sync_timestamp' in ${result['user_properties'][0]}
-    Run Keyword If    ${task_count} > 0    Evaluate    'last_sync_exit_code' in ${result['user_properties'][0]}
-    Run Keyword If    ${task_count} > 0    Evaluate    'has_log' in ${result['user_properties'][0]}
+    ${props} =    Set Variable    ${result['user_properties'][0]}
+    Should Contain    ${props}    last_sync_timestamp
+    Should Contain    ${props}    last_sync_exit_code
+    Should Contain    ${props}    has_log
+    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"task_id": "status1", "localuser": "u2"}'
