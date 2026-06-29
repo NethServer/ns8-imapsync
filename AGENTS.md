@@ -220,14 +220,36 @@ volumes/myvolume
 - `volumes/<name>` → Podman volume `<name>` (rootless) or `<module_id>-<name>` (rootful)
 - `state/environment` is always included automatically
 
-### Database dump/cleanup (bin scripts, not actions)
-For modules with a database, create two **executable** scripts in `imageroot/bin/`:
+### Restore sequence
+`imageroot/actions/restore-module/` — numbered steps, `10restore` inherited (Restic).
 
-**`imageroot/bin/module-dump-state`** — runs before Restic backup, CWD is `state/`:
+**`06copyenv`** — restore env vars from backup (runs before `10restore` overwrites state):
+```python
+import sys, json, agent
+request = json.load(sys.stdin)
+for evar in ["MAIL_SERVER", "TRAEFIK_HOST", ...]:
+    agent.set_env(evar, request['environment'][evar])
+```
+
+**`50call-configure-module`** — reconfigure after restore (common to both DB engines):
+```python
+import sys, json, agent, os
+request = json.load(sys.stdin)
+renv = request['environment']
+retval = agent.tasks.run(agent_id=os.environ['AGENT_ID'],
+    action='configure-module', data={
+        "mail_server": renv["MAIL_SERVER"],
+        "host": renv["TRAEFIK_HOST"],
+        # ... map all required config fields
+    })
+agent.assert_exp(retval['exit_code'] == 0, "configure-module failed!")
+```
+
+### MariaDB
+**`imageroot/bin/module-dump-state`** — CWD is `state/`, runs before Restic backup:
 ```bash
 #!/bin/bash
 set -e
-# Exit silently if service not running
 if ! systemctl --user -q is-active mymodule.service; then exit 0; fi
 podman exec mariadb-app mysqldump \
     --databases mydb \
@@ -242,32 +264,13 @@ podman exec mariadb-app mysqldump \
 rm -vf mydb.sql
 ```
 
-Add the dump file to `state-include.conf`:
-```
-state/mydb.sql
-volumes/mysql-data
-```
-
-### Restore sequence
-`imageroot/actions/restore-module/` — numbered steps, `10restore` inherited (Restic).
-Add custom steps after 10:
-
-**`06copyenv`** — restore env vars from backup (runs before 10restore overwrites state):
-```python
-import sys, json, agent
-request = json.load(sys.stdin)
-for evar in ["MAIL_SERVER", "TRAEFIK_HOST", ...]:
-    agent.set_env(evar, request['environment'][evar])
-```
-
-**`40restoreDB`** — restore SQL dump via ephemeral MariaDB container:
+**`imageroot/actions/restore-module/40restoreDB`:**
 ```bash
 #!/bin/bash
 set -e -o pipefail
 exec 1>&2
 mkdir -vp initdb.d
 mv -v mydb.sql initdb.d
-# Exit script to stop MariaDB after dump is loaded
 cat - >initdb.d/zz_restore.sh <<'EOS'
 set -- true
 docker_temp_server_stop
@@ -284,21 +287,62 @@ podman run --rm --interactive --network=none \
     --replace --name=restore_db \
     ${MARIADB_IMAGE}
 ```
-MariaDB entrypoint auto-executes all files in `/docker-entrypoint-initdb.d/` on first
-start, then `zz_restore.sh` stops the container. The volume `mysql-data` is now populated.
+MariaDB entrypoint auto-executes files in `/docker-entrypoint-initdb.d/`, then
+`zz_restore.sh` calls `docker_temp_server_stop` to exit.
 
-**`50call-configure-module`** — reconfigure after restore:
-```python
-import sys, json, agent, os
-request = json.load(sys.stdin)
-renv = request['environment']
-retval = agent.tasks.run(agent_id=os.environ['AGENT_ID'],
-    action='configure-module', data={
-        "mail_server": renv["MAIL_SERVER"],
-        "host": renv["TRAEFIK_HOST"],
-        # ... map all required config fields
-    })
-agent.assert_exp(retval['exit_code'] == 0, "configure-module failed!")
+`state-include.conf`:
+```
+state/mydb.sql
+volumes/mysql-data
+```
+
+### PostgreSQL
+Dump uses custom format (`--format=c`) for `pg_restore` compatibility.
+
+**`imageroot/bin/module-dump-state`:**
+```bash
+#!/bin/bash
+set -e
+podman exec postgres-app pg_dump -U myuser --format=c mydb > mydb.pg_dump
+```
+
+**`imageroot/bin/module-cleanup-state`:**
+```bash
+#!/bin/bash
+rm -vf mydb.pg_dump
+```
+
+**`imageroot/actions/restore-module/40restore-postgres`:**
+```bash
+#!/bin/bash
+set -e -o pipefail
+exec 1>&2
+mkdir -vp restore
+cat - >restore/mydb_restore.sh <<'EOS'
+pg_restore --no-owner --no-privileges -U myuser -d mydb
+ec=$?
+docker_temp_server_stop
+exit $ec
+EOS
+# Dump piped via stdin into the ephemeral container
+podman run --rm --interactive --network=none \
+    --volume=./restore:/docker-entrypoint-initdb.d/:Z \
+    --volume=postgres-data:/var/lib/postgresql/data:Z \
+    --replace --name=restore_db \
+    --env POSTGRES_USER=myuser \
+    --env POSTGRES_PASSWORD=Nethesis,1234 \
+    --env POSTGRES_DB=mydb \
+    "${POSTGRES_IMAGE}" < mydb.pg_dump
+rm -rfv restore/ mydb.pg_dump
+```
+The restore script reads the dump from stdin via `pg_restore`, then calls
+`docker_temp_server_stop` to exit the container.
+
+`state-include.conf`:
+```
+state/mydb.pg_dump
+volumes/postgres-data
+volumes/app-data
 ```
 
 ### Clone vs restore
@@ -330,49 +374,6 @@ declare volumes suitable for bulk data (databases, mail stores, media files),
 not config or small-state volumes.
 
 Volume assignments are stored in `/etc/nethserver/volumes.conf` and managed via `volumectl`.
-
-### PostgreSQL dump/restore pattern
-Dump uses custom format (`--format=c`) for `pg_restore` compatibility:
-
-**`imageroot/bin/module-dump-state`:**
-```bash
-#!/bin/bash
-set -e
-podman exec postgres-app pg_dump -U myuser --format=c mydb > mydb.pg_dump
-```
-
-**`imageroot/actions/restore-module/40restore-postgres`:**
-```bash
-#!/bin/bash
-set -e -o pipefail
-exec 1>&2
-mkdir -vp restore
-cat - >restore/mydb_restore.sh <<'EOS'
-pg_restore --no-owner --no-privileges -U myuser -d mydb
-ec=$?
-docker_temp_server_stop
-exit $ec
-EOS
-# Dump is piped via stdin into the ephemeral container
-podman run --rm --interactive --network=none \
-    --volume=./restore:/docker-entrypoint-initdb.d/:Z \
-    --volume=postgres-data:/var/lib/postgresql/data:Z \
-    --replace --name=restore_db \
-    --env POSTGRES_USER=myuser \
-    --env POSTGRES_PASSWORD=Nethesis,1234 \
-    --env POSTGRES_DB=mydb \
-    "${POSTGRES_IMAGE}" < mydb.pg_dump
-rm -rfv restore/ mydb.pg_dump
-```
-The restore script in `/docker-entrypoint-initdb.d/` reads the dump from stdin,
-calls `docker_temp_server_stop` to exit the container once done.
-
-`state-include.conf` — list dump file and all named volumes:
-```
-state/mydb.pg_dump
-volumes/postgres-data
-volumes/app-data
-```
 
 ### SELinux volume label flags
 - `:z` (shared) — volume accessible by multiple containers within the same pod
