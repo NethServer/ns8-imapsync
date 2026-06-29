@@ -206,20 +206,7 @@ Mount in the systemd service:
 ```
 
 ### Additional disks
-For large-data modules, declare named volumes as candidates for placement on additional disks:
-```bash
---label="org.nethserver.volumes=mysql-data"          # single volume
---label="org.nethserver.volumes=mysql-data piler_store"  # multiple, space-separated
-```
-When the module is installed and the node has an additional disk configured,
-the UI presents a modal asking the sysadmin where to store the data.
-Without the label, the volume lands in the Podman default path under the module's home directory.
-
-Additional disks are **slower than the root disk but have bigger size** — only
-declare volumes suitable for bulk data (databases, mail stores, media files),
-not config or small-state volumes.
-
-Volume assignments are stored in `/etc/nethserver/volumes.conf` and managed via `volumectl`.
+`--label="org.nethserver.volumes=vol1 vol2"` — marks volumes as candidates for additional-disk placement. At install, the UI prompts the sysadmin to assign them to an extra disk (slower but bigger). Without the label, volumes land in Podman default under the module home. Only use for bulk data (DB, mail, media). Assignments in `/etc/nethserver/volumes.conf`, managed via `volumectl`.
 
 ### SELinux volume label flags
 - `:z` (shared) — volume accessible by multiple containers within the same pod
