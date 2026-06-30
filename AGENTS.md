@@ -7,6 +7,20 @@ NS8 is a modular Linux server platform. Each module runs in a Podman container,
 rootless by default. Some modules require rootful mode — declared in `build-images.sh`
 via `--label="org.nethserver.rootfull=1"`.
 
+### Container image versions and Renovate
+
+Third-party images pulled at runtime are declared in `build-images.sh` via:
+```bash
+--label="org.nethserver.images=docker.io/mariadb:11.4.12 docker.io/xwiki:16.10.18-mariadb-tomcat"
+```
+
+**RULE: always use a fully pinned version tag — never a floating tag like `lts`, `latest`, or `11.4-lts`.**
+Renovate reads this label to track upstream releases and open automatic update PRs.
+A floating tag gives Renovate nothing to compare against — updates are silently skipped.
+
+Correct: `mariadb:11.4.12`, `nginx:1.27.5`
+Wrong: `mariadb:11.4-lts`, `nginx:latest`
+
 ## Module Directory Layout
 ```
 build-images.sh          # Container image build + authorization declarations
