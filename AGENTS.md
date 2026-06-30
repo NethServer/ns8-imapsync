@@ -21,6 +21,15 @@ A floating tag gives Renovate nothing to compare against — updates are silentl
 Correct: `mariadb:11.4.12`, `nginx:1.27.5`
 Wrong: `mariadb:11.4-lts`, `nginx:latest`
 
+**RULE: never invent or guess a version tag. Always verify the tag exists before using it.**
+Check available tags on Docker Hub before writing any image reference:
+```bash
+# List available tags for an image
+curl -s "https://hub.docker.com/v2/repositories/library/mariadb/tags/?page_size=20" \
+  | python3 -c "import sys,json; [print(t['name']) for t in json.load(sys.stdin)['results']]"
+```
+Or browse `https://hub.docker.com/_/mariadb/tags` directly. A non-existent tag silently fails at pull time and breaks the module.
+
 ## Module Directory Layout
 ```
 build-images.sh          # Container image build + authorization declarations
