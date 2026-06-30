@@ -68,6 +68,65 @@ Base actions inherited automatically (no need to implement):
 - `get-status` — runtime status (rootless only)
 - `list-service-providers` — service discovery
 
+### JSON data flow
+
+Every action step receives input as JSON on stdin and writes output as JSON to stdout:
+
+```python
+import json, sys
+
+data = json.load(sys.stdin)           # read input from UI / caller
+result = {"key": data["key"]}
+json.dump(result, fp=sys.stdout)      # write output back
+```
+
+Input/output schemas live in `validate-input.json` / `validate-output.json` at the action
+root (JSON Schema Draft 7). The platform validates them before/after execution — define
+them to get free input sanitization.
+
+### Injected environment variables
+
+The NS8 platform injects these vars into every action and event handler:
+
+| Variable | Value |
+|---|---|
+| `AGENT_ID` | Module agent identity, e.g. `module/imapsync1` |
+| `MODULE_ID` | Module instance ID, e.g. `imapsync1` |
+| `NODE_ID` | Node integer ID |
+| `AGENT_STATE_DIR` | Absolute path to `state/` directory |
+| `AGENT_INSTALL_DIR` | Absolute path to `imageroot/` |
+| `REDIS_USER` | Redis auth username |
+| `REDIS_PASSWORD` | Redis auth password |
+
+Module-specific vars (set via `agent.set_env()` during `configure-module`) are loaded from
+`state/environment` and available as plain `os.environ` reads in all subsequent actions.
+
+### Error signaling
+
+Three patterns, pick by context:
+
+**Validation failure** — invalid input the user can fix:
+```python
+agent.set_status('validation-failed')
+json.dump([{'field': 'mail_server', 'error': 'not_valid'}], fp=sys.stdout)
+sys.exit(3)
+```
+
+**Assertion** — invariant that should never fail:
+```python
+response = agent.tasks.run("module/mail1", action='get-config')
+agent.assert_exp(response['exit_code'] == 0, "get-config failed")
+# prints stack trace to stderr + sys.exit(2) on failure
+```
+
+**Subprocess failure** — external command:
+```python
+agent.run_helper("systemctl", "--user", "restart", "myapp.service").check_returncode()
+# raises CalledProcessError → action aborts with non-zero exit
+```
+
+Non-zero exit from any step halts the action sequence.
+
 Modules with a UI must implement:
 - `configure-module` — validate + apply config
 - `get-configuration` — return current config (mirrors configure-module input)
@@ -84,14 +143,24 @@ agent.unset_env("KEY")          # remove env var from state/environment
 > **Note:** env vars live in Redis — all node modules can read them.
 > For secrets, write to `state/<file>`, include in `etc/state-include.conf`, and read in the relevant action.
 
-`redis_connect` only when you need to read/write Redis directly with the Python client:
+#### tasks.run vs run_helper
 
 ```python
-rdb = agent.redis_connect(use_replica=True)   # local replica, resilient at startup
+# Cross-module RPC — tracked by NS8 task framework, returns output dict
+response = agent.tasks.run("module/mail1", action='list-user-mailboxes', data={})
+agent.assert_exp(response['exit_code'] == 0)
+mailboxes = response['output']['user_mailboxes']
 
-# Cross-module RPC call
-agent.tasks.run(f"module/{other_module_id}", action="action-name", data={...})
+# Local subprocess — synchronous, blocks until done
+agent.run_helper("run-imapsync", "restart", task_id).check_returncode()
+agent.run_helper("systemctl", "--user", "try-restart", "myapp.service").check_returncode()
 ```
+
+| | `tasks.run` | `run_helper` |
+|---|---|---|
+| Target | Another module's action (or selfadm) | Local script in `imageroot/bin/` or any binary |
+| Returns | `{'exit_code': int, 'output': dict}` | `CompletedProcess` — call `.check_returncode()` |
+| Use for | Inter-module calls, selfadm delegation | Service management, podman, local helpers |
 
 ## Service Providers
 Modules expose services to other modules via Redis hash keys:
@@ -100,13 +169,12 @@ module/<module_id>/srv/<transport>/<service_name>
 ```
 Typical fields: `host`, `port`.
 
-Discovering services (Python):
+Discovering services (Python) — `redis_connect` is needed here for direct Redis access:
 ```python
-rdb = agent.redis_connect(use_replica=True)
+rdb = agent.redis_connect(use_replica=True)   # use_replica: works even if cluster leader is unreachable
 providers = agent.list_service_providers(rdb, 'imap', 'tcp', {'module_uuid': uuid})
 host = providers[0]['host']
 ```
-Use `use_replica=True` so service startup works even if cluster leader is unreachable.
 
 When a service endpoint changes, the provider fires an event named
 `<service-name>-changed` with payload `{"module_id": "...", "module_uuid": "..."}`.
