@@ -263,6 +263,20 @@ All three (or more) services must appear in the command. Order matters: pod firs
 - `40restoreDB` — load SQL dump via ephemeral container (see patterns below)
 - `50call-configure-module` — call `configure-module` with restored env vars via `agent.tasks.run()`
 
+> **⚠️ `50call-configure-module` must pass ALL vars restored by `06copyenv`**, not just the Traefik ones.
+> `06copyenv` restores every non-secret env var set by `agent.set_env()`.
+> Missing any var leaves `configure-module` with wrong/empty defaults.
+>
+> Pattern — read from `os.environ` (already populated by `06copyenv`), map to `configure-module` input:
+> ```python
+> agent.tasks.run("module/" + os.environ["MODULE_ID"], action="configure-module", data={
+>     "host":      os.environ["TRAEFIK_HOST"],
+>     "http2https": os.environ.get("TRAEFIK_HTTP2HTTPS", "false") == "true",
+>     # ALL other fields accepted by configure-module — check validate-input.json
+> })
+> ```
+> Read `configure-module/validate-input.json` to enumerate every required/optional field.
+
 ### MariaDB
 - **Dump** (`imageroot/bin/module-dump-state`, CWD=`state/`): `podman exec mariadb-app mysqldump --databases mydb --default-character-set=utf8mb4 --single-transaction --quick --add-drop-table --skip-dump-date > mydb.sql`
 - **Cleanup** (`imageroot/bin/module-cleanup-state`): `rm -vf mydb.sql`
