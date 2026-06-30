@@ -112,18 +112,12 @@ json.dump([{'field': 'mail_server', 'error': 'not_valid'}], fp=sys.stdout)
 sys.exit(3)
 ```
 
-**Assertion** — invariant that should never fail:
+**Assertion** — invariant that should never fail (stack trace to stderr + `sys.exit(2)`):
 ```python
-response = agent.tasks.run("module/mail1", action='get-config')
-agent.assert_exp(response['exit_code'] == 0, "get-config failed")
-# prints stack trace to stderr + sys.exit(2) on failure
+agent.assert_exp(some_condition, "error message")
 ```
 
-**Subprocess failure** — external command:
-```python
-agent.run_helper("systemctl", "--user", "restart", "myapp.service").check_returncode()
-# raises CalledProcessError → action aborts with non-zero exit
-```
+**Subprocess / cross-module failure** — see `tasks.run vs run_helper` below.
 
 Non-zero exit from any step halts the action sequence.
 
