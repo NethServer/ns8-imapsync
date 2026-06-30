@@ -81,6 +81,10 @@ agent.unset_env("KEY")          # remove env var from state/environment
 > **Note:** env vars live in Redis — all node modules can read them.
 > For secrets, write to `state/<file>`, include in `etc/state-include.conf`, and read in the relevant action.
 
+# Progress reporting — requires frontend to set isProgressNotified: true (see AGENTS-frontend.md § Task progress)
+agent.set_progress(50)        # emit 0-100 to frontend progress bar
+agent.set_weight(os.path.basename(__file__), 0)  # exclude step from auto-progress (validation steps typically)
+
 #### tasks.run vs run_helper
 
 ```python

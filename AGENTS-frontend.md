@@ -84,6 +84,32 @@ configureModuleValidationFailed(validationErrors) {
 
 Backend validation payload: `[{field, parameter, error}]` — `parameter` maps to `error` object key.
 
+## Task progress
+
+Add `isProgressNotified: true` in `extra`, use `$on` (not `$once`) for repeated events.
+Unregister in **completed, aborted, AND validation-failed** — all terminal states:
+
+```javascript
+this.myProgress = 0;  // reset before call — indeterminate until first value arrives
+this.core.$root.$on(`${taskAction}-progress-${eventId}`, this.myActionProgressUpdated);
+
+// in extra:
+extra: { ..., isProgressNotified: true, eventId },
+
+// ALL terminal callbacks (completed, aborted, validation-failed):
+this.core.$root.$off(`${taskContext.action}-progress-${taskContext.extra.eventId}`);
+
+myActionProgressUpdated(progress) {
+  this.myProgress = progress;  // 0-100
+},
+```
+
+```html
+<NsProgressBar :value="myProgress" :indeterminate="!myProgress" />
+```
+
+Both sides required: backend calls `agent.set_progress(0-100)`, frontend sets `isProgressNotified: true` — neither works alone. See AGENTS-backend.md § Agent SDK.
+
 ## Template
 
 ```html
