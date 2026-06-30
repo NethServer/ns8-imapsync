@@ -94,6 +94,7 @@ agent.unset_env("KEY")          # remove env var from state/environment
 #### Progress reporting
 Requires frontend `isProgressNotified: true` (see AGENTS-frontend.md § Task progress):
 ```python
+import os, agent
 agent.set_progress(50)        # emit 0-100 to frontend progress bar
 agent.set_weight(os.path.basename(__file__), 0)  # exclude step from auto-progress (validation steps)
 ```
