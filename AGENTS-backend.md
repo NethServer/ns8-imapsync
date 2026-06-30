@@ -207,23 +207,49 @@ Cluster channel `cluster/event/<name>`: `module-added`, `module-removed`, `leade
 - Multi-service (pod pattern): `<module>.service` (pod master) + `<component>-app.service` (children)
 
 ### Multi-service ordering (pod pattern)
-- Pod master (`<module>.service`): `Requires=` + `Before=` all children
-- DB service: `BindsTo=<module>.service`, `After=<module>.service`, `Before=app-app.service`
-- App service: `BindsTo=<module>.service`, `After=<module>.service db-app.service`
 
-`BindsTo=` ensures children stop automatically if the pod dies.
+Boot order: **pod → DB → app**. Each unit must declare its relationships explicitly.
+
+**Pod master (`<module>.service`)** — owns the pod, must declare all children:
+```ini
+[Unit]
+Requires=mariadb-app.service myapp-app.service
+Before=mariadb-app.service myapp-app.service
+```
+
+**DB service (`mariadb-app.service`)** — starts after pod, before app:
+```ini
+[Unit]
+BindsTo=<module>.service
+After=<module>.service
+Before=myapp-app.service
+```
+
+**App service (`myapp-app.service`)** — starts last, after pod and DB:
+```ini
+[Unit]
+BindsTo=<module>.service
+After=<module>.service mariadb-app.service
+```
+
+`BindsTo=` ensures children stop automatically when the pod dies. Without it, children keep running as orphans.
 
 ### Conditional service start (configure-module/80start_services)
 Services are enabled and started only after successful configuration.
-For a pod module, **all services must be named explicitly** to guarantee
-the `Before=`/`After=` start order is respected — systemd does not cascade
-restarts to children automatically:
+
+> **⚠️ WRONG — starting only the pod service does NOT start children:**
+> ```bash
+> systemctl --user restart <module>.service   # WRONG — children stay down
+> ```
+> systemd does NOT cascade restarts to children automatically.
+
+**CORRECT — list every service explicitly** to guarantee `Before=`/`After=` order is respected:
 ```bash
 systemctl --user enable <module>.service
-systemctl --user restart <module>.service db-app.service app-app.service
 # Use try-restart if the service may not be running yet (e.g. first configure)
 systemctl --user try-restart <module>.service db-app.service app-app.service
 ```
+All three (or more) services must appear in the command. Order matters: pod first, then DB, then app.
 
 ## Backup & Restore
 
