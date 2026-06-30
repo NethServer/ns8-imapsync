@@ -276,6 +276,12 @@ All three (or more) services must appear in the command. Order matters: pod firs
 ### Declaring what to back up (state-include.conf)
 `imageroot/etc/state-include.conf` lists paths relative to the module home. Use `state/<file>` for files in `AGENT_STATE_DIR` and `volumes/<name>` for Podman volumes (`<module_id>-<name>` when rootful). `state/environment` is always included automatically.
 
+**Only include files that are NOT provided by the module image.** If a file in `state/` is derived from or identical to a file shipped in `imageroot/` (e.g. `state/initdb.d/init.sql` copied from `imageroot/sql/init.sql`), do NOT back it up — regenerate it during restore instead. Back up only:
+- User data volumes (`volumes/myapp-data`)
+- SQL/DB dumps (`state/mydb.sql`, `state/mydb.pg_dump`)
+- Secrets generated at install time (`state/passwords.env`)
+- Any runtime state not reproducible from the image
+
 ### Restore sequence
 `imageroot/actions/restore-module/` — numbered steps, `10restore` inherited (Restic).
 
