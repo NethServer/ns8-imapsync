@@ -6,10 +6,10 @@ Views: `ui/src/views/` — Components: `ui/src/components/`
 
 ```javascript
 import { mapState } from "vuex";
-import { TaskService, UtilService, IconService, QueryParamService, PageTitleService } from "@nethserver/ns8-ui-lib";
+import { TaskService, UtilService, IconService, QueryParamService, PageTitleService, DateTimeService } from "@nethserver/ns8-ui-lib";
 
 export default {
-  mixins: [TaskService, UtilService, IconService, QueryParamService, PageTitleService],
+  mixins: [TaskService, UtilService, IconService, QueryParamService, PageTitleService, DateTimeService],
   computed: {
     ...mapState(["instanceName", "core", "appName"]),
   },
@@ -18,13 +18,24 @@ export default {
 
 - `core` — parent NS8 shell Vue instance (module runs in iframe). Used for `this.core.$root.$once(...)`.
 - `instanceName` — module ID e.g. `imapsync1`. Auto-extracted from URL by App.vue.
-- Mixins: `TaskService`→`createModuleTaskForApp()`,`getUuid()` / `UtilService`→`clearErrors()`,`focusElement()`,`getErrorMessage()`
+- Before writing utility code, check `ns8-ui-lib/src/lib-mixins/` — all 8 mixins are already available via import.
+
+| Mixin | Key methods / data |
+|---|---|
+| `TaskService` | `createModuleTaskForApp()`, `createNodeTaskForApp()`, `createErrorNotificationForApp()`, `createNotificationForApp()`, `deleteNotificationForApp()`, `getTaskStatus()`, `getTaskKind()` |
+| `UtilService` | `getErrorMessage()`, `clearErrors()`, `focusElement()`, `goToAppPage()`, `getUuid()`, `sortByProperty(prop)`, `isJson(s)`, `tryParseJson(s)` |
+| `DateTimeService` | `formatDate` (date-fns format), `formatDateDistance`, `parseIsoDate`, `dateIsBefore`, `formatInTimeZone(date,fmt,tz)` |
+| `StorageService` | `getFromStorage(prop)`, `saveToStorage(prop, obj)`, `deleteFromStorage(prop)` — localStorage wrappers, do NOT use `localStorage` directly |
+| `QueryParamService` | `queryParamsToDataForApp()`, `watchQueryData()` — sync URL query params ↔ component data |
+| `IconService` | **~150 Carbon icons injected into `data()`** — use directly as `:icon="Save20"` without importing. Check `ns8-ui-lib/src/lib-mixins/icon.js` before importing an icon manually. Common: `Save20`, `TrashCan20`, `Edit20`, `Add20`, `Settings20`, `Information16`, `CheckmarkFilled20`, `ErrorFilled20`, `Warning20`, `Restart20` |
+| `PageTitleService` | Sets browser tab title automatically |
+| `LottieService` | Lottie animation helpers |
 
 ## Router
 
 Standard views in every module: `status` (default `/`), `settings`, `tasks`, `about`.
 
-Navigate with `goToAppPage()` from `QueryParamService` mixin — do NOT use `this.$router.push()` directly:
+Navigate with `goToAppPage()` from `UtilService` mixin — do NOT use `this.$router.push()` directly:
 ```javascript
 this.goToAppPage(this.instanceName, "settings");
 this.goToAppPage(this.instanceName, "status");
@@ -164,6 +175,24 @@ Source: `github.com/NethServer/ns8-ui-lib` — read `src/lib-components/<Name>.v
 `NsInlineNotification` `NsToastNotification` `NsDataTable` `NsPagination` `NsEmptyState`
 `NsStatusCard` `NsInfoCard` `NsTile` `NsTabs` `NsProgress` `NsProgressBar`
 `NsSystemdServiceCard` `NsSystemLogsCard` `NsWizard` `NsCodeSnippet` `NsTag`
+
+### Vue filters (registered globally — use directly in templates)
+
+Source: `ns8-ui-lib/src/lib-filters/filters.js` — registered in `main.js` via `Vue.filter()`.
+
+| Filter | Input | Output example |
+|---|---|---|
+| `byteFormat` | bytes (int) | `1536 → "1.5 KiB"` |
+| `humanFormat` | any number | `1500 → "2 K"` (pass `true` for 1 decimal) |
+| `mibFormat` | MiB (int) | `2048 → "2 GiB"` |
+| `gibFormat` | GiB (int) | `2048 → "2 TiB"` |
+| `secondsFormat` | seconds | `3661 → "1h 1m 1s"` |
+| `secondsLongFormat` | seconds | `3661 → "01h 01m 01s"` |
+
+```html
+{{ fileSize | byteFormat }}
+{{ duration | secondsFormat }}
+```
 
 ### NsWizard
 Props: `visible` (Boolean), `isLastStep` (replaces Next→Finish), `isNextLoading`, `isNextDisabled`, `isPreviousDisabled`, `isCancelDisabled`, `isPreviousShown`, `isCancelShown`.
