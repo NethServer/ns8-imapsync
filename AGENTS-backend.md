@@ -124,6 +124,48 @@ host = providers[0]['host']
 When a service endpoint changes, the provider fires an event named
 `<service-name>-changed` with payload `{"module_id": "...", "module_uuid": "..."}`.
 
+### Discovery scripts (ExecStartPre)
+
+Run at container startup (`ExecStartPre=` in systemd unit) — resolve external services and write results to a `.env` file loaded by the main service. Exit non-zero aborts startup. References: ns8-sogo `imageroot/bin/discover-service`, ns8-mail `imageroot/bin/discover-services`.
+
+**Service endpoint discovery:**
+```python
+import os, sys, agent
+
+rdb = agent.redis_connect(use_replica=True)  # replica: works even if cluster leader unreachable
+providers = agent.list_service_providers(rdb, 'imap', 'tcp', {'module_uuid': os.environ['MAIL_SERVER']})
+if len(providers) != 1:
+    print(agent.SD_ERR + "Cannot find imap service", file=sys.stderr)
+    sys.exit(4)
+
+tmpfile = "discovery.env." + str(os.getpid()) + ".tmp"
+with open(tmpfile, "w") as f:
+    print(f"IMAP_HOST={providers[0]['host']}", file=f)
+    print(f"IMAP_PORT={providers[0]['port']}", file=f)
+os.replace(tmpfile, "discovery.env")  # atomic — never leaves partial file
+```
+
+**LDAP discovery** (use `Ldapproxy`, not Redis direct):
+```python
+from agent.ldapproxy import Ldapproxy
+
+try:
+    odom = Ldapproxy().get_domain(os.environ['LDAP_DOMAIN'])
+    'host' in odom  # raises if odom is None (domain not configured)
+except:
+    # Restore: domain may be unavailable — use placeholder so container starts
+    odom = {'host': '127.0.0.1', 'port': 20000, 'schema': 'rfc2307',
+            'base_dn': 'dc=invalid', 'bind_dn': 'cn=x,dc=invalid', 'bind_password': 'invalid'}
+
+tmpfile = "discovery.env." + str(os.getpid()) + ".tmp"
+with open(tmpfile, "w") as f:
+    print(f"LDAP_HOST={odom['host']}", file=f)
+    # ... bind_dn, bind_password, schema, base_dn
+os.replace(tmpfile, "discovery.env")
+```
+
+`agent.SD_ERR` — systemd error-level prefix. `os.replace()` — atomic write. Always `use_replica=True` in startup scripts.
+
 ## Events
 Events are Redis channel messages. Channel format: `module/<module_id>/event/<event_name>`.
 Name events in **past tense**: `mail-settings-changed`, `ldap-provider-changed`.
