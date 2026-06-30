@@ -6,7 +6,7 @@ Views: `ui/src/views/` — Components: `ui/src/components/`
 
 ```javascript
 import { mapState } from "vuex";
-import { TaskService, UtilService, IconService, QueryParamService, PageTitleService, DateTimeService } from "@nethserver/ns8-ui-lib";
+import { TaskService, UtilService, IconService, StorageService, QueryParamService, PageTitleService, DateTimeService } from "@nethserver/ns8-ui-lib";
 export default {
   mixins: [TaskService, UtilService, IconService, QueryParamService, PageTitleService, DateTimeService],
   computed: { ...mapState(["instanceName", "core", "appName"]) },
@@ -23,9 +23,9 @@ export default {
 | `TaskService` | `createModuleTaskForApp()`, `createNodeTaskForApp()`, `createErrorNotificationForApp()`, `createNotificationForApp()`, `getTaskStatus()`, `getTaskKind()` |
 | `UtilService` | `getErrorMessage()`, `clearErrors()`, `focusElement()`, `goToAppPage()`, `getUuid()`, `sortByProperty(prop)`, `isJson(s)`, `tryParseJson(s)` |
 | `DateTimeService` | `formatDate` (date-fns), `formatDateDistance`, `parseIsoDate`, `dateIsBefore`, `formatInTimeZone(date,fmt,tz)` |
-| `StorageService` | `getFromStorage(prop)`, `saveToStorage(prop,obj)`, `deleteFromStorage(prop)` — do NOT use `localStorage` directly |
+| `StorageService` | `getFromStorage("myKey")` → object\|null, `saveToStorage("myKey", obj)`, `deleteFromStorage("myKey")` — localStorage wrappers keyed per module instance. Do NOT use `localStorage` directly. |
 | `QueryParamService` | `queryParamsToDataForApp()`, `watchQueryData()` — sync URL params ↔ data |
-| `IconService` | **~150 icons in `data()` — NEVER import manually without checking `ns8-ui-lib/src/lib-mixins/icon.js` first.** Use as `:icon="Save20"` directly. Available (partial list): `Save20` `TrashCan20` `Edit20` `Add20` `Close20` `Search20` `Settings20` `Information16` `Information20` `CheckmarkFilled20` `ErrorFilled20` `Warning20` `WarningAlt20` `Restart20` `Download20` `Upload20` `ArrowRight20` `ChevronDown20` `ChevronUp20` `ChevronLeft20` `ChevronRight20` `ArrowDown20` `Rocket20` `Power20` `Password20` `Checkmark20` `Reset20` `Launch20` `Link20` `Upgrade20` `Tools20` `Document20` `Folder20` `User20` `Group20` `Filter20` `Time20` `Hourglass20` `DataBase20` `DataBackup20` `Certificate20` `Firewall20` `Router20` `Catalog20` `Events20` `Email20` `Locked20` `OverflowMenuVertical20` `ZoomIn20` `CloudUpload20` |
+| `IconService` | **~150 icons in `data()` — NEVER import manually without checking `ns8-ui-lib/src/lib-mixins/icon.js` first.** Use as `:icon="Save20"` directly. Available (partial list): `Save20` `TrashCan20` `Edit20` `Add20` `Close20` `Search20` `Settings20` `Information16` `Information20` `CheckmarkFilled20` `ErrorFilled20` `Warning20` `WarningAlt20` `Restart20` `Download20` `ArrowRight20` `ChevronDown20` `ChevronUp20` `ChevronLeft20` `ChevronRight20` `ArrowDown20` `Rocket20` `Power20` `Password20` `Checkmark20` `Reset20` `Launch20` `Link20` `Upgrade20` `Tools20` `Document20` `Folder20` `User20` `Group20` `Filter20` `Time20` `Hourglass20` `DataBase20` `DataBackup20` `Certificate20` `Firewall20` `Router20` `Catalog20` `Events20` `Email20` `Locked20` `OverflowMenuVertical20` `ZoomIn20` `CloudUpload20` |
 | `PageTitleService` | Sets browser tab title |
 | `LottieService` | Lottie helpers |
 

@@ -9,7 +9,7 @@ Bash scripts use standard POSIX shell.
 Base actions inherited automatically (no need to implement):
 - `create-module` — install + pull image
 - `destroy-module` — cleanup (traefik, firewall, systemd)
-- `get-status` — runtime status (rootless only)
+- `get-status` — runtime status (rootless and rootful)
 - `list-service-providers` — service discovery
 
 ### JSON data flow
@@ -52,7 +52,7 @@ Three patterns, pick by context:
 **Validation failure** — invalid input the user can fix:
 ```python
 agent.set_status('validation-failed')
-json.dump([{'field': 'mail_server', 'error': 'not_valid'}], fp=sys.stdout)
+json.dump([{'field': 'mail_server', 'parameter': 'mail_server', 'value': data['mail_server'], 'error': 'not_valid'}], fp=sys.stdout)
 sys.exit(3)
 ```
 
@@ -81,9 +81,12 @@ agent.unset_env("KEY")          # remove env var from state/environment
 > **Note:** env vars live in Redis — all node modules can read them.
 > For secrets, write to `state/<file>`, include in `etc/state-include.conf`, and read in the relevant action.
 
-# Progress reporting — requires frontend to set isProgressNotified: true (see AGENTS-frontend.md § Task progress)
+### Progress reporting
+Requires frontend `isProgressNotified: true` (see AGENTS-frontend.md § Task progress):
+```python
 agent.set_progress(50)        # emit 0-100 to frontend progress bar
-agent.set_weight(os.path.basename(__file__), 0)  # exclude step from auto-progress (validation steps typically)
+agent.set_weight(os.path.basename(__file__), 0)  # exclude step from auto-progress (validation steps)
+```
 
 #### tasks.run vs run_helper
 
