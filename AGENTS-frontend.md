@@ -1,57 +1,38 @@
 # NS8 Module — Frontend Guide
 
-## Stack
+## Stack & Vuex
 Vue 2.6, Vuex, Vue Router, IBM Carbon Design System, `@nethserver/ns8-ui-lib`.
-Entry: `ui/src/main.js`. Views in `ui/src/views/`, components in `ui/src/components/`.
+Views: `ui/src/views/` — Components: `ui/src/components/`
 
-Mixins from `@nethserver/ns8-ui-lib` (import and declare in `mixins: []`):
+```javascript
+import { mapState } from "vuex";
+import { TaskService, UtilService, IconService, QueryParamService, PageTitleService } from "@nethserver/ns8-ui-lib";
 
-| Mixin | Provides |
-|---|---|
-| `TaskService` | `createModuleTaskForApp()`, `getUuid()` |
-| `UtilService` | `clearErrors()`, `focusElement()`, `getErrorMessage()` |
-| `IconService` | Carbon icon helpers |
-| `QueryParamService` | URL query param binding (`watchQueryData`, `initUrlBindingForApp`) |
-| `PageTitleService` | `pageTitle()` hook |
+export default {
+  mixins: [TaskService, UtilService, IconService, QueryParamService, PageTitleService],
+  computed: {
+    ...mapState(["instanceName", "core", "appName"]),
+  },
+}
+```
 
-## Calling a backend action
+- `core` — parent NS8 shell Vue instance (module runs in iframe). Used for `this.core.$root.$once(...)`.
+- `instanceName` — module ID e.g. `imapsync1`. Auto-extracted from URL by App.vue.
+- Mixins: `TaskService`→`createModuleTaskForApp()`,`getUuid()` / `UtilService`→`clearErrors()`,`focusElement()`,`getErrorMessage()`
 
-All backend calls use `TaskService.createModuleTaskForApp()` wrapped with `await-to-js`:
+## Action call pattern
 
 ```javascript
 import { to } from "await-to-js";
 
-const eventId = this.getUuid();
-this.core.$root.$once(`my-action-completed-${eventId}`, this.myActionCompleted);
-this.core.$root.$once(`my-action-aborted-${eventId}`,   this.myActionAborted);
+// data() structure
+data: () => ({
+  loading: { getConfiguration: false, configureModule: false },
+  error:   { getConfiguration: "", configureModule: "", myField: "" },
+  myField: "",
+}),
 
-const res = await to(
-  this.createModuleTaskForApp(this.instanceName, {
-    action: "my-action",
-    data: { key: value },          // omit for read-only actions
-    extra: {
-      title: this.$t("action.my-action"),
-      isNotificationHidden: true,  // hide from notification center
-      eventId,
-    },
-  })
-);
-const err = res[0];
-if (err) {
-  this.error.myAction = this.getErrorMessage(err);
-  this.loading.myAction = false;
-}
-```
-
-## get-configuration / configure-module cycle
-
-Standard pattern for a Settings view:
-
-```javascript
-// lifecycle — load on mount
-created() {
-  this.getConfiguration();
-},
+created() { this.getConfiguration(); },
 
 async getConfiguration() {
   this.loading.getConfiguration = true;
@@ -65,8 +46,7 @@ async getConfiguration() {
   if (res[0]) { this.error.getConfiguration = this.getErrorMessage(res[0]); this.loading.getConfiguration = false; }
 },
 getConfigurationCompleted(taskContext, taskResult) {
-  const config = taskResult.output;
-  this.myField = config.my_field;
+  this.myField = taskResult.output.my_field;
   this.loading.getConfiguration = false;
 },
 
@@ -84,57 +64,58 @@ async configureModule() {
   }));
   if (res[0]) { this.error.configureModule = this.getErrorMessage(res[0]); this.loading.configureModule = false; }
 },
-```
 
-## Validation error handling
-
-### Frontend (before sending to backend)
-```javascript
 validateConfigureModule() {
   this.clearErrors(this);
-  if (!this.myField) {
-    this.error.myField = "common.required";
-    this.focusElement("myField");
-    return false;
-  }
+  if (!this.myField) { this.error.myField = "common.required"; this.focusElement("myField"); return false; }
   return true;
 },
-```
-
-### Backend validation-failed
-```javascript
+configureModuleAborted(taskResult, taskContext) {
+  console.error(`${taskContext.action} aborted`, taskResult);
+  this.error.configureModule = this.$t("error.generic_error");
+  this.loading.configureModule = false;
+},
 configureModuleValidationFailed(validationErrors) {
   this.loading.configureModule = false;
-  for (const validationError of validationErrors) {
-    this.error[validationError.parameter] = this.$t("settings." + validationError.error);
-  }
+  for (const e of validationErrors) { this.error[e.parameter] = this.$t("settings." + e.error); }
   this.focusElement(validationErrors[0].parameter);
 },
 ```
 
-Backend sends `[{'field': 'my_field', 'parameter': 'my_field', 'error': 'not_valid'}]` —
-`parameter` maps to the component's `error` object key.
+Backend validation payload: `[{field, parameter, error}]` — `parameter` maps to `error` object key.
 
-## Standard data() structure
+## Template
 
-```javascript
-data() {
-  return {
-    loading: {
-      getConfiguration: false,
-      configureModule: false,
-    },
-    error: {
-      getConfiguration: "",
-      configureModule: "",
-      myField: "",        // one entry per validated field
-    },
-    myField: "",          // form fields
-  };
-},
+```html
+<cv-form @submit.prevent="configureModule">
+  <NsTextInput v-model.trim="myField" :label="$t('s.label')" ref="myField"
+    :invalid-message="$t(error.myField)" :disabled="loading.configureModule" />
+
+  <NsComboBox v-model.trim="myField" :title="$t('s.title')" :label="$t('s.placeholder')"
+    :options="list" :invalid-message="$t(error.myField)" ref="myField"
+    :disabled="loading.getConfiguration || loading.configureModule" />
+
+  <NsButton kind="primary" :icon="Save20" :loading="loading.configureModule"
+    :disabled="loading.getConfiguration || loading.configureModule">
+    {{ $t("settings.save") }}
+  </NsButton>
+
+  <NsInlineNotification v-if="error.configureModule" kind="error"
+    :title="$t('action.configure-module')" :description="error.configureModule" :showCloseButton="false" />
+</cv-form>
 ```
 
+`ref="myField"` must match `focusElement("myField")`.
+
+## ns8-ui-lib components
+
+Source: `github.com/NethServer/ns8-ui-lib` — read `src/lib-components/<Name>.vue` for props.
+
+`NsButton` `NsTextInput` `NsPasswordInput` `NsComboBox` `NsComboSearchBox` `NsMultiSelect`
+`NsToggle` `NsCheckbox` `NsSlider` `NsByteSlider` `NsTimePicker` `NsModal` `NsDangerDeleteModal`
+`NsInlineNotification` `NsToastNotification` `NsDataTable` `NsPagination` `NsEmptyState`
+`NsStatusCard` `NsInfoCard` `NsTile` `NsTabs` `NsProgress` `NsProgressBar`
+`NsSystemdServiceCard` `NsSystemLogsCard` `NsWizard` `NsCodeSnippet` `NsTag`
+
 ## Translations
-Files live in `ui/public/i18n/<lang>/translation.json`.
-**Only edit `ui/public/i18n/en/translation.json`.**
-All other language files are updated automatically by Renovate — never edit them manually.
+Only edit `ui/public/i18n/en/translation.json`. Other languages updated automatically by Renovate.
