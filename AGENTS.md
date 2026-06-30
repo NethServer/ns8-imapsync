@@ -75,9 +75,19 @@ Modules with a UI must implement:
 ### Agent SDK (Python)
 ```python
 import agent
+
+# High-level env helpers — no Redis connection needed
+agent.set_env("KEY", "value")   # add/update env var in state/environment
+agent.unset_env("KEY")          # remove env var from state/environment
+```
+
+> **Note:** env vars live in Redis — all node modules can read them.
+> For secrets, write to `state/<file>`, include in `etc/state-include.conf`, and read in the relevant action.
+
+`redis_connect` only when you need to read/write Redis directly with the Python client:
+
+```python
 rdb = agent.redis_connect(use_replica=True)   # local replica, resilient at startup
-agent.set_env("KEY", "value")                  # add/update env var in state/environment
-agent.unset_env("KEY")                         # remove env var from state/environment
 
 # Cross-module RPC call
 agent.tasks.run(f"module/{other_module_id}", action="action-name", data={...})
