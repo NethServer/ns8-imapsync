@@ -69,6 +69,26 @@ Modules with a UI must implement:
 - `configure-module` — validate + apply config
 - `get-configuration` — return current config (mirrors configure-module input)
 
+### Logging to journald
+
+**stdout is reserved for action output (JSON). All log messages must go to stderr.**
+The NS8 agent framework captures stdout as the action's return value — printing to stdout corrupts the output.
+
+In Python scripts:
+```python
+import sys, agent
+print("informational message", file=sys.stderr)              # plain log
+print(agent.SD_WARNING + "something unexpected", file=sys.stderr)  # warning level
+print(agent.SD_ERR + "critical failure", file=sys.stderr)          # error level
+```
+
+In bash scripts, redirect stdout to stderr at the top of the file:
+```bash
+exec 1>&2   # all subsequent echo/printf go to journald
+```
+
+`agent.SD_WARNING`, `agent.SD_ERR`, `agent.SD_INFO`, `agent.SD_NOTICE` are systemd journal priority prefixes — journald parses them to set log level.
+
 ### Agent SDK (Python)
 ```python
 import agent
