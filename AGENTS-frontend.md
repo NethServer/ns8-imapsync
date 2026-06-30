@@ -145,6 +145,12 @@ Pattern: `@carbon/icons-vue/es/<kebab-name>/<size>`. Variants use double dash: `
 
 ## ns8-ui-lib components
 
+> **⚠️ COMPONENT PRIORITY — strictly enforced:**
+> 1. **Use `Ns*` (ns8-ui-lib) first.** Check the list below before anything else.
+> 2. **Only use `cv-*` (Carbon Vue) if no `Ns*` equivalent exists.**
+> Never use `cv-slider`, `cv-toggle`, `cv-text-input`, etc. when `NsSlider`, `NsToggle`, `NsTextInput` exist.
+> Wrong: `<cv-slider>` — Correct: `<NsSlider>`
+
 Source: `github.com/NethServer/ns8-ui-lib` — read `src/lib-components/<Name>.vue` for props.
 
 `NsButton` `NsTextInput` `NsPasswordInput` `NsComboBox` `NsComboSearchBox` `NsMultiSelect`
