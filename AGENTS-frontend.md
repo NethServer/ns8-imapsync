@@ -20,6 +20,16 @@ export default {
 - `instanceName` — module ID e.g. `imapsync1`. Auto-extracted from URL by App.vue.
 - Mixins: `TaskService`→`createModuleTaskForApp()`,`getUuid()` / `UtilService`→`clearErrors()`,`focusElement()`,`getErrorMessage()`
 
+## Router
+
+Standard views in every module: `status` (default `/`), `settings`, `tasks`, `about`.
+
+Navigate with `goToAppPage()` from `QueryParamService` mixin — do NOT use `this.$router.push()` directly:
+```javascript
+this.goToAppPage(this.instanceName, "settings");
+this.goToAppPage(this.instanceName, "status");
+```
+
 ## Action call pattern
 
 ```javascript
@@ -112,6 +122,18 @@ Both sides required: backend calls `agent.set_progress(0-100)`, frontend sets `i
 
 ## Template
 
+Import Carbon icons with size suffix, register in `components`, use as `:icon` prop:
+```javascript
+import Save20        from "@carbon/icons-vue/es/save/20";
+import TrashCan16    from "@carbon/icons-vue/es/trash-can/16";
+import Play20        from "@carbon/icons-vue/es/play--outline/20";  // double-dash before variant
+
+export default {
+  components: { Save20, TrashCan16, Play20 },
+}
+```
+Pattern: `@carbon/icons-vue/es/<kebab-name>/<size>`. Multi-word: single dash (`trash-can`), variants: double dash (`play--outline`, `add--alt`).
+
 ```html
 <cv-form @submit.prevent="configureModule">
   <NsTextInput v-model.trim="myField" :label="$t('s.label')" ref="myField"
@@ -142,6 +164,24 @@ Source: `github.com/NethServer/ns8-ui-lib` — read `src/lib-components/<Name>.v
 `NsInlineNotification` `NsToastNotification` `NsDataTable` `NsPagination` `NsEmptyState`
 `NsStatusCard` `NsInfoCard` `NsTile` `NsTabs` `NsProgress` `NsProgressBar`
 `NsSystemdServiceCard` `NsSystemLogsCard` `NsWizard` `NsCodeSnippet` `NsTag`
+
+### NsWizard
+Props: `visible` (Boolean), `isLastStep` (replaces Next→Finish), `isNextLoading`, `isNextDisabled`, `isPreviousDisabled`, `isCancelDisabled`, `isPreviousShown`, `isCancelShown`.
+Slots: `#title`, `#content`. Events: `@cancel`, `@previousStep`, `@nextStep`.
+
+```html
+<NsWizard
+  :visible="isWizardVisible"
+  :isLastStep="currentStep === steps.length - 1"
+  :isNextLoading="loading.nextStep"
+  @cancel="isWizardVisible = false"
+  @previousStep="currentStep--"
+  @nextStep="handleNextStep"
+>
+  <template #title>{{ $t("wizard.title") }}</template>
+  <template #content><!-- step content --></template>
+</NsWizard>
+```
 
 ## Translations
 Only edit `ui/public/i18n/en/translation.json`. Other languages updated automatically by Renovate.
