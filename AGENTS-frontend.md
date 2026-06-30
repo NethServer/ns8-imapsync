@@ -8,7 +8,7 @@ Views: `ui/src/views/` — Components: `ui/src/components/`
 import { mapState } from "vuex";
 import { TaskService, UtilService, IconService, StorageService, QueryParamService, PageTitleService, DateTimeService } from "@nethserver/ns8-ui-lib";
 export default {
-  mixins: [TaskService, UtilService, IconService, StorageService, QueryParamService, PageTitleService, DateTimeService],
+  mixins: [TaskService, UtilService, IconService, QueryParamService, PageTitleService], // add StorageService, DateTimeService, LottieService if needed
   computed: { ...mapState(["instanceName", "core", "appName"]) },
 }
 ```
@@ -94,7 +94,7 @@ configureModuleValidationFailed(validationErrors) {
 },
 ```
 
-Backend validation payload: `[{field, parameter, error}]` — `parameter` maps to `error` object key.
+Backend validation payload: `[{field, parameter, value, error}]` — `parameter` maps to `error` object key.
 
 ## Task progress
 
