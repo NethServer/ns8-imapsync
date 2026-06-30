@@ -78,8 +78,18 @@ agent.set_env("KEY", "value")   # add/update env var in state/environment
 agent.unset_env("KEY")          # remove env var from state/environment
 ```
 
-> **Note:** env vars live in Redis — all node modules can read them.
-> For secrets, write to `state/<file>`, include in `etc/state-include.conf`, and read in the relevant action.
+> **⚠️ SECURITY — `agent.set_env()` writes to Redis plain text, readable by ALL modules on the node. NEVER store passwords/tokens/secrets via `agent.set_env()`.**
+>
+> **Secret pattern:** generate in `create-module/10genpasswords` → write `state/passwords.env` (mode 0600) → declare in `etc/state-include.conf` (Restic backup) → load via systemd `EnvironmentFile=-%S/state/passwords.env` → inject into container via `--env-file=%S/state/passwords.env`. Restic restores the file on `restore-module` — no extra action needed. Non-secret vars (`TRAEFIK_HOST`, `LDAP_DOMAIN`, etc.) use `agent.set_env()` normally.
+>
+> ```python
+> # create-module/10genpasswords
+> import secrets, os
+> p = os.path.join(os.environ["AGENT_STATE_DIR"], "passwords.env")
+> with open(p, "w") as f:
+>     f.write(f"DB_PASSWORD={secrets.token_urlsafe(16)}\n")
+> os.chmod(p, 0o600)
+> ```
 
 #### Progress reporting
 Requires frontend `isProgressNotified: true` (see AGENTS-frontend.md § Task progress):
