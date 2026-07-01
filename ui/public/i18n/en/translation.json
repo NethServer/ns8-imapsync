@@ -51,6 +51,10 @@
         "col_task_status": "Task status",
         "col_task_id": "Task ID",
         "col_task_cron": "Task frequency",
+        "col_last_sync": "Last sync",
+        "sync_success": "Success",
+        "sync_error": "Error",
+        "sync_never": "Never",
         "create": "Create",
         "edit": "Edit",
         "start": "Start",
@@ -59,6 +63,7 @@
         "stopped": "Stopped",
         "not_configured": "Not configured",
         "running": "Running",
+        "stop_service_first": "Stop the service before using this action",
         "create_task": "Create task",
         "edit_task": "Edit task",
         "remoteusername": "Remote user",
@@ -118,6 +123,8 @@
         "compare_accounts": "Compare local and remote account",
         "something_wrong_cannot_list_informations": "Something went wrong, we cannot list the remote and account information",
         "informations": "Information",
+        "download_log": "Download log",
+        "log_truncated": "The log is large: showing only the last 100 KB. The full log is available on the server.",
         "fetching_statistic_please_wait": "Waiting to retrieve statictics, please wait",
         "every_minutes": "Every {num} minutes",
         "configure_imapsync": "Go to the settings",
@@ -146,7 +153,8 @@
         "create-task": "Create task",
         "start-task": "Start task",
         "stop-task": "Stop task",
-        "list-informations": "List information"
+        "list-informations": "List information",
+        "get-log": "Get log"
     },
     "error": {
         "error": "Error",

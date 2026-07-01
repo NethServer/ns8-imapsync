@@ -103,12 +103,18 @@ if [[ "${action}" == "start" ]]; then
         >"/etc/imapsync/${task_id}.log" || \
     {
         exit_code=$?
+        # exit code 143 = SIGTERM: task was manually stopped, do not overwrite last sync status
+        if [[ ${exit_code} -ne 143 ]]; then
+            printf '%s\n%s\n' "${timestamp}" "${exit_code}" > "/etc/imapsync/${task_id}.status"
+        fi
         echo "task ${task_id}: imapsync error: ${exit_code}" 1>&2
         print_log_excerpt "${task_id}" 1>&2
         exit ${exit_code}
     }
     # print run summary
     print_log_excerpt "${task_id}"
+    # save last sync timestamp and exit code
+    printf '%s\n%s\n' "${timestamp}" "0" > "/etc/imapsync/${task_id}.status"
     # set the timestamp file to the current time
     echo ${FOLDERSYNCHRONIZATION} > "/etc/imapsync/${task_id}.timestamp"
     touch -m -d "@${timestamp}" "/etc/imapsync/${task_id}.timestamp"

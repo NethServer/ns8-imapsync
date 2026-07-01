@@ -115,6 +115,19 @@ Check the imap folder informations of u2
     Should Be True    7000 <= int(${ocfg['host2Sizes']}) < 8000 # the value can change
     Should Be True                 ${ocfg['status']}
 
+Verify list-tasks status fields after sync
+    ${result} =    Run task    module/${imapsync_module_id}/list-tasks    {}
+    ${props} =    Set Variable    ${result['user_properties'][0]}
+    Should Not Be Equal    ${props['last_sync_timestamp']}    ${None}
+    Should Be True    int(${props['last_sync_timestamp']}) > 0
+    Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
+    Should Be True    ${props['has_log']}
+
+Test get-log action returns log content after sync
+    ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "28ofi1", "localuser": "u2"}
+    Should Not Be Empty    ${result['log_content']}
+    Should Be Equal    ${result['truncated']}    ${False}
+
 Create Public and Shared folders with subfolders on u3
     Execute Command    runagent -m ${MID} podman exec dovecot doveadm mailbox create -u u3 Public    return_rc=True
     Execute Command    runagent -m ${MID} podman exec dovecot doveadm mailbox create -u u3 Public/Junk    return_rc=True
@@ -166,3 +179,41 @@ Verify list-tasks is empty after delete-task
     ${ocfg}=    Run task    module/${imapsync_module_id}/list-tasks    {}
     Log    ${ocfg}    DEBUG
     Should Be Empty    ${ocfg['user_properties']}
+
+Test get-log action returns empty log for non-existent task
+    ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "000000", "localuser": "u2"}
+    Should Be Equal As Strings    ${result['log_content']}    ${EMPTY}
+    Should Be Equal    ${result['truncated']}    ${False}
+
+Test get-log action rejects invalid task_id format
+    Run Keyword And Expect Error    *Validation errors*    Run task    module/${imapsync_module_id}/get-log    {"task_id": "invalid_task", "localuser": "u2"}
+
+Test get-log action rejects path traversal in task_id
+    Run Keyword And Expect Error    *Validation errors*    Run task    module/${imapsync_module_id}/get-log    {"task_id": "../etc", "localuser": "u2"}
+
+Test get-log action rejects invalid localuser format
+    Run Keyword And Expect Error    *Validation errors*    Run task    module/${imapsync_module_id}/get-log    {"task_id": "28ofi1", "localuser": "invalid@user"}
+
+Test get-log action truncates log larger than 100KB
+    [Documentation]    Create a 200KB log file, verify get-log returns at most 100KB and truncated=True
+    ${logfile} =    Set Variable    /home/${imapsync_module_id}/.config/state/imapsync/u2_trunc1.log
+    Execute Command    python3 -c "open('${logfile}', 'w').write('x\\n' * 102400)"
+    ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "trunc1", "localuser": "u2"}
+    Should Be Equal    ${result['truncated']}    ${True}
+    ${content_len} =    Get Length    ${result['log_content']}
+    Should Be True    ${content_len} > 0
+    Should Be True    ${content_len} <= 102400
+    [Teardown]    Execute Command    rm -f ${logfile}
+
+Test list-tasks status fields populated after task creation
+    [Documentation]    create-task triggers an immediate sync via run-imapsync restart, so status fields must be populated
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "5m","delete_local": false,"delete_remote": false,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "127.0.0.1","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "status1"}'
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0
+    ${result} =    Run task    module/${imapsync_module_id}/list-tasks    {}
+    ${props} =    Set Variable    ${result['user_properties'][0]}
+    Should Not Be Equal    ${props['last_sync_timestamp']}    ${None}
+    Should Be True    int(${props['last_sync_timestamp']}) > 0
+    Should Not Be Equal    ${props['last_sync_exit_code']}    ${None}
+    Should Be True    ${props['has_log']}
+    [Teardown]    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"task_id": "status1", "localuser": "u2"}'

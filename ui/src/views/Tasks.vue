@@ -30,6 +30,13 @@
             :description="core.$t('common.use_landscape_mode_description')"
             class="landscape-warning"
           />
+          <NsInlineNotification
+            v-if="warning.downloadLog"
+            kind="warning"
+            :description="warning.downloadLog"
+            :showCloseButton="true"
+            @close="warning.downloadLog = ''"
+          />
         </cv-column>
       </cv-row>
       <cv-row class="toolbar">
@@ -151,6 +158,18 @@
                     }}
                   </cv-data-table-cell>
                   <cv-data-table-cell>
+                    <div v-if="row.last_sync_timestamp" class="sync-status">
+                      <NsTag
+                        :kind="row.last_sync_exit_code === 0 ? 'green' : 'red'"
+                        :label="row.last_sync_exit_code === 0 ? $t('tasks.sync_success') : $t('tasks.sync_error')"
+                        size="sm"
+                        class="no-margin"
+                      />
+                      {{ new Date(row.last_sync_timestamp * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) }}
+                    </div>
+                    <span v-else>{{ $t("tasks.sync_never") }}</span>
+                  </cv-data-table-cell>
+                  <cv-data-table-cell>
                     {{ row.task_id }}
                   </cv-data-table-cell>
                   <cv-data-table-cell class="table-overflow-menu-cell">
@@ -161,6 +180,8 @@
                     >
                       <cv-overflow-menu-item
                         @click="toggleEditTask(row)"
+                        :disabled="row.service"
+                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
                         :data-test-id="row.localuser + '-edit-task'"
                       >
                         <NsMenuItem :icon="Edit20" :label="$t('tasks.edit')" />
@@ -168,6 +189,7 @@
                       <cv-overflow-menu-item
                         v-if="row.remoteusername !== ''"
                         @click="toggleActionTask(row)"
+                        :disabled="loading.toggleActionTask"
                         :data-test-id="row.localuser + '-action-task'"
                       >
                         <NsMenuItem
@@ -180,6 +202,8 @@
                       <cv-overflow-menu-item
                         v-if="row.remoteusername !== ''"
                         @click="toggleDeleteTask(row)"
+                        :disabled="row.service"
+                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
                         :data-test-id="row.localuser + '-delete-task'"
                       >
                         <NsMenuItem
@@ -195,6 +219,17 @@
                         <NsMenuItem
                           :icon="Information20"
                           :label="$t('tasks.informations')"
+                        />
+                      </cv-overflow-menu-item>
+                      <cv-overflow-menu-item
+                        v-if="row.remoteusername !== '' && row.has_log"
+                        @click="downloadLog(row)"
+                        :disabled="loading.downloadLog || row.service"
+                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
+                      >
+                        <NsMenuItem
+                          :icon="Download20"
+                          :label="$t('tasks.download_log')"
                         />
                       </cv-overflow-menu-item>
                     </cv-overflow-menu>
@@ -247,6 +282,7 @@ import Play20 from "@carbon/icons-vue/es/play--outline/20";
 import Stop20 from "@carbon/icons-vue/es/stop--outline/20";
 import Add20 from "@carbon/icons-vue/es/task--add/20";
 import Information20 from "@carbon/icons-vue/es/information/20";
+import Download20 from "@carbon/icons-vue/es/download/20";
 
 export default {
   name: "Tasks",
@@ -275,7 +311,12 @@ export default {
       Play20,
       Stop20,
       Add20,
+      Download20,
       urlCheckInterval: null,
+      refreshInterval: null,
+      REFRESH_INTERVAL: 10000,
+      silentRefreshing: false,
+      silentRefreshTimeout: null,
       tablePage: [],
       tableColumns: [
         "localuser",
@@ -283,6 +324,7 @@ export default {
         "remotehostname",
         "task_cron",
         "task_status",
+        "last_sync",
         "task_id",
       ],
       tasks: [],
@@ -312,6 +354,7 @@ export default {
         listTasks: false,
         setDeleteTask: false,
         toggleListInformations: false,
+        downloadLog: false,
       },
       error: {
         listTasks: "",
@@ -320,6 +363,10 @@ export default {
         stopAllTasks: "",
         toggleActionTask: "",
         toggleListInformations: "",
+        downloadLog: "",
+      },
+      warning: {
+        downloadLog: "",
       },
     };
   },
@@ -342,21 +389,31 @@ export default {
     next();
   },
   created() {
-    this.$root.$on("reloadtasks", this.listTasks);
     this.listTasks();
+    this.refreshInterval = setInterval(this.autoRefresh, this.REFRESH_INTERVAL);
   },
   beforeDestroy() {
-    // remove event listener
-    this.$root.$off("reloadtasks");
+    clearInterval(this.refreshInterval);
+    clearTimeout(this.silentRefreshTimeout);
   },
   methods: {
-    async listTasks() {
+    autoRefresh() {
+      if (!this.loading.listTasks && !this.silentRefreshing) {
+        this.listTasks(true);
+      }
+    },
+    async listTasks(silent = false) {
       // we push after object to tasks
       // we have to set to zero at first
-      this.tasks = [];
+      clearTimeout(this.silentRefreshTimeout);
+      if (silent !== true) {
+        this.tasks = [];
+        this.loading.listTasks = true;
+      } else {
+        this.silentRefreshing = true;
+      }
       const taskAction = "list-tasks";
       const eventId = this.getUuid();
-      this.loading.listTasks = true;
       // register to task events
       this.core.$root.$once(
         `${taskAction}-aborted-${eventId}`,
@@ -366,6 +423,10 @@ export default {
         `${taskAction}-completed-${eventId}`,
         this.listTasksCompleted
       );
+      this.silentRefreshTimeout = setTimeout(() => {
+        this.silentRefreshing = false;
+        this.loading.listTasks = false;
+      }, this.REFRESH_INTERVAL * 3);
       const res = await to(
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
@@ -383,12 +444,16 @@ export default {
         const errMessage = this.getErrorMessage(err);
         this.error.listTasks = errMessage;
         this.loading.listTasks = false;
+        this.silentRefreshing = false;
+        clearTimeout(this.silentRefreshTimeout);
       }
     },
     listTasksAborted(taskResult, taskContext) {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.error.listTasks = this.$t("error.generic_error");
       this.loading.listTasks = false;
+      this.silentRefreshing = false;
+      clearTimeout(this.silentRefreshTimeout);
     },
     listTasksCompleted(taskContext, taskResult) {
       let Config = taskResult.output;
@@ -434,11 +499,17 @@ export default {
             .split(",")
             .filter((value) => value.trim() !== "")
             .join("\n"), // Filter empty values
+          last_sync_timestamp: task.last_sync_timestamp,
+          last_sync_exit_code: task.last_sync_exit_code,
+          has_log: task.has_log,
         });
       });
       this.tasks = tasks;
       this.check_tasks = this.tasks.length ? true : false;
       this.loading.listTasks = false;
+      this.silentRefreshing = false;
+      this.error.listTasks = "";
+      clearTimeout(this.silentRefreshTimeout);
     },
     toggleEditTask(task) {
       this.currentTask = task;
@@ -554,12 +625,22 @@ export default {
       this.loading.toggleActionTask = true;
       this.error.toggleActionTask = "";
       const taskAction = task.service ? "stop-task" : "start-task";
+      // Optimistic update: immediately reflect the expected new state
+      const found = this.tasks.find(
+        (t) => t.task_id === task.task_id && t.localuser === task.localuser
+      );
+      const originalService = task.service;
+      if (found) {
+        found.service = !originalService;
+      }
       const eventId = this.getUuid();
       // register to task error
-      this.core.$root.$once(
-        `${taskAction}-aborted-${eventId}`,
-        this.toggleActionTaskAborted
-      );
+      this.core.$root.$once(`${taskAction}-aborted-${eventId}`, (taskResult, taskContext) => {
+        console.error(`${taskContext.action} aborted`, taskResult);
+        if (found) found.service = originalService;
+        this.error.toggleActionTask = this.$t("error.generic_error");
+        this.loading.toggleActionTask = false;
+      });
       // register to task completion
       this.core.$root.$once(
         `${taskAction}-completed-${eventId}`,
@@ -583,15 +664,11 @@ export default {
 
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
+        if (found) found.service = originalService;
         this.error.toggleActionTask = this.getErrorMessage(err);
         this.loading.toggleActionTask = false;
         return;
       }
-    },
-    toggleActionTaskAborted(taskResult, taskContext) {
-      console.error(`${taskContext.action} aborted`, taskResult);
-      this.error.toggleActionTask = this.$t("error.generic_error");
-      this.loading.toggleActionTask = false;
     },
     toggleActionTaskCompleted() {
       this.loading.toggleActionTask = false;
@@ -685,6 +762,63 @@ export default {
       this.loading.stopAllTasks = false;
       this.listTasks();
     },
+    async downloadLog(task) {
+      this.loading.downloadLog = true;
+      this.error.downloadLog = "";
+      this.warning.downloadLog = "";
+      const taskAction = "get-log";
+      const eventId = this.getUuid();
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        this.downloadLogAborted
+      );
+      this.core.$root.$once(
+        `${taskAction}-completed-${eventId}`,
+        (taskContext, taskResult) => {
+          this.loading.downloadLog = false;
+          if (taskResult.output.truncated) {
+            this.warning.downloadLog = this.$t("tasks.log_truncated");
+          }
+          const blob = new Blob([taskResult.output.log_content], {
+            type: "text/plain",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          const now = new Date();
+          const pad = (n) => String(n).padStart(2, "0");
+          const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+          a.download = `imapsync_${task.localuser}_${task.task_id}_${stamp}.log`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
+      );
+      const res = await to(
+        this.createModuleTaskForApp(this.instanceName, {
+          action: taskAction,
+          data: {
+            task_id: task.task_id,
+            localuser: task.localuser,
+          },
+          extra: {
+            title: this.$t("action." + taskAction),
+            isNotificationHidden: true,
+            eventId,
+          },
+        })
+      );
+      const err = res[0];
+      if (err) {
+        console.error(`error creating task ${taskAction}`, err);
+        this.error.downloadLog = this.getErrorMessage(err);
+        this.loading.downloadLog = false;
+      }
+    },
+    downloadLogAborted(taskResult, taskContext) {
+      console.error(`${taskContext.action} aborted`, taskResult);
+      this.error.downloadLog = this.$t("error.generic_error");
+      this.loading.downloadLog = false;
+    },
   },
 };
 </script>
@@ -705,5 +839,11 @@ export default {
 }
 .kebab-height {
   height: 3rem;
+}
+.sync-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
 }
 </style>
