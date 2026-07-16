@@ -274,7 +274,7 @@ Cron sync must not reset the Seen flag (NethServer/dev#8107)
     Should Be Equal As Integers    ${src}    3    source u3 must stay Unseen to test the resync overwrite
     # Re-run the sync synchronously (no -d) and re-check the flag
     ${o}    ${e}    ${c} =    Execute Command
-    ...    runagent -m ${MID} podman exec imapsync /usr/local/bin/syncctl start u2_flagtest
+    ...    runagent -m ${imapsync_module_id} podman exec imapsync /usr/local/bin/syncctl start u2_flagtest
     ...    return_rc=True    return_stdout=True    return_stderr=True
     Should Be Equal As Integers    ${c}    0
     ${unseen2}    ${e}    ${c} =    Execute Command
