@@ -84,6 +84,12 @@ if [[ "${action}" == "start" ]]; then
         # Run Sieve filter if wanted
         sieve_enabled=${SIEVE_ENABLED:+1}
     fi
+    # Do not resync flags on scheduled (cron) runs, nor on unseen-only inbox
+    # sync. Otherwise the source overwrites the \Seen flag set locally (e.g.
+    # read in WebTop). See NethServer/dev#8107.
+    if [[ -n "${CRON}" ]] || [[ -n "${sync_unseen}" ]]; then
+        noresyncflags=1
+    fi
     # retrieve unixtimestamp
     timestamp="$(date +%s)"
 
@@ -98,7 +104,8 @@ if [[ "${action}" == "start" ]]; then
         --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
         ${FOLDER_INBOX} \
         ${sieve_enabled:+--sievedelivery2} \
-        ${sync_unseen:+--search1=UNSEEN --setflag1=Seen --noresyncflags} \
+        ${sync_unseen:+--search1=UNSEEN --setflag1=Seen} \
+        ${noresyncflags:+--noresyncflags} \
         --exclude '^Shared(/.*)?$|^Public(/.*)?$'"${exclude_regex}" \
         >"/etc/imapsync/${task_id}.log" || \
     {
