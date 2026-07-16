@@ -217,3 +217,63 @@ Test list-tasks status fields populated after task creation
     Should Not Be Equal    ${props['last_sync_exit_code']}    ${None}
     Should Be True    ${props['has_log']}
     [Teardown]    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"task_id": "status1", "localuser": "u2"}'
+
+Cron sync must not reset the Seen flag (NethServer/dev#8107)
+    [Documentation]    On a cron task imapsync must run with --noresyncflags, so a message
+    ...    marked Seen locally is not reset to Unseen by the untouched source on the next sync.
+    ...    Uses foldersynchronization=all (folder_inbox empty), so --search1=UNSEEN/--setflag1=Seen
+    ...    is NOT active and --noresyncflags is the only variable under test.
+    ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
+    # Send 3 fresh emails u1 -> u3 (test-msa.sh already uploaded earlier in the suite)
+    ${mail_server} =    Set Variable    smtp://127.0.0.1:10587
+    FOR    ${i}    IN RANGE    3
+        ${out}    ${err}    ${rc} =    Execute Command
+        ...    MAIL_SERVER=${mail_server} bash /tmp/test-msa.sh u3@domain.test u1@domain.test
+        ...    return_rc=True    return_stderr=True
+        Should Be Equal As Integers    ${rc}    0
+    END
+    # Create cron task u3 -> u2, keep both sides (immediate sync fires on create)
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "5m","delete_local": false,"delete_remote": false,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "${mail_server_ip}","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "flagtest"}'
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0
+    # Wait until u2 INBOX holds the 3 messages
+    ${success} =    Set Variable    False
+    FOR    ${i}    IN RANGE    15
+        ${cnt}    ${e}    ${c} =    Execute Command
+        ...    runagent -m ${MID} podman exec dovecot doveadm search -u u2 mailbox INBOX all | wc -l
+        ...    return_rc=True    return_stdout=True    return_stderr=True
+        Should Be Equal As Integers    ${c}    0
+        ${cnt} =    Evaluate    "${cnt}".strip()
+        Run Keyword If    int(${cnt}) == 3    Set Test Variable    ${success}    True
+        Run Keyword If    ${success}    Exit For Loop
+        Sleep    1s
+    END
+    Should Be True    ${success}    u2 should receive the 3 emails before the flag test
+    # Mark every u2 message as Seen
+    ${o}    ${e}    ${c} =    Execute Command
+    ...    runagent -m ${MID} podman exec dovecot doveadm flags add -u u2 '\\Seen' mailbox INBOX all
+    ...    return_rc=True    return_stdout=True    return_stderr=True
+    Should Be Equal As Integers    ${c}    0
+    # Precondition: no unseen message left on u2
+    ${unseen}    ${e}    ${c} =    Execute Command
+    ...    runagent -m ${MID} podman exec dovecot doveadm search -u u2 mailbox INBOX unseen | wc -l
+    ...    return_rc=True    return_stdout=True    return_stderr=True
+    ${unseen} =    Evaluate    "${unseen}".strip()
+    Should Be Equal As Integers    ${unseen}    0    u2 messages should all be Seen before resync
+    # Source u3 messages are still Unseen (never read) -> the overwrite condition exists
+    ${src}    ${e}    ${c} =    Execute Command
+    ...    runagent -m ${MID} podman exec dovecot doveadm search -u u3 mailbox INBOX unseen | wc -l
+    ...    return_rc=True    return_stdout=True    return_stderr=True
+    ${src} =    Evaluate    "${src}".strip()
+    Should Be Equal As Integers    ${src}    3    source u3 must stay Unseen to test the resync overwrite
+    # Re-run the sync synchronously (no -d) and re-check the flag
+    ${o}    ${e}    ${c} =    Execute Command
+    ...    runagent -m ${MID} podman exec imapsync /usr/local/bin/syncctl start u2_flagtest
+    ...    return_rc=True    return_stdout=True    return_stderr=True
+    Should Be Equal As Integers    ${c}    0
+    ${unseen2}    ${e}    ${c} =    Execute Command
+    ...    runagent -m ${MID} podman exec dovecot doveadm search -u u2 mailbox INBOX unseen | wc -l
+    ...    return_rc=True    return_stdout=True    return_stderr=True
+    ${unseen2} =    Evaluate    "${unseen2}".strip()
+    Should Be Equal As Integers    ${unseen2}    0    --noresyncflags must preserve the Seen flag on cron resync
+    [Teardown]    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"task_id": "flagtest", "localuser": "u2"}'
