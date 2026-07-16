@@ -232,11 +232,17 @@ Cron sync must not reset the Seen flag (NethServer/dev#8107)
         ...    return_rc=True    return_stderr=True
         Should Be Equal As Integers    ${rc}    0
     END
+    # Baseline: u2 INBOX may already hold messages from earlier tests
+    ${base}    ${e}    ${c} =    Execute Command
+    ...    runagent -m ${MID} podman exec dovecot doveadm search -u u2 mailbox INBOX all | wc -l
+    ...    return_rc=True    return_stdout=True    return_stderr=True
+    Should Be Equal As Integers    ${c}    0
+    ${expected} =    Evaluate    int("${base}".strip()) + 3
     # Create cron task u3 -> u2, keep both sides (immediate sync fires on create)
     ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "5m","delete_local": false,"delete_remote": false,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "${mail_server_ip}","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "flagtest"}'
     ...    return_rc=True    return_stdout=False
     Should Be Equal As Integers    ${rc}    0
-    # Wait until u2 INBOX holds the 3 messages
+    # Wait until the 3 new messages land in u2 INBOX
     ${success} =    Set Variable    False
     FOR    ${i}    IN RANGE    15
         ${cnt}    ${e}    ${c} =    Execute Command
@@ -244,7 +250,7 @@ Cron sync must not reset the Seen flag (NethServer/dev#8107)
         ...    return_rc=True    return_stdout=True    return_stderr=True
         Should Be Equal As Integers    ${c}    0
         ${cnt} =    Evaluate    "${cnt}".strip()
-        Run Keyword If    int(${cnt}) == 3    Set Test Variable    ${success}    True
+        Run Keyword If    int(${cnt}) >= ${expected}    Set Test Variable    ${success}    True
         Run Keyword If    ${success}    Exit For Loop
         Sleep    1s
     END
