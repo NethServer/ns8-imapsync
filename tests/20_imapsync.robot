@@ -282,4 +282,26 @@ Cron sync must not reset the Seen flag (NethServer/dev#8107)
     ...    return_rc=True    return_stdout=True    return_stderr=True
     ${unseen2} =    Evaluate    "${unseen2}".strip()
     Should Be Equal As Integers    ${unseen2}    0    --noresyncflags must preserve the Seen flag on cron resync
-    [Teardown]    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"task_id": "flagtest", "localuser": "u2"}'
+    # Negative control: a task WITHOUT cron gets no --noresyncflags, so it MUST overwrite the flag.
+    # Only CRON differs from the task above -> proves --noresyncflags is what preserves the flag.
+    # u2 still holds the 3 messages Seen and u3 still holds them Unseen, so the overwrite condition holds.
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "","delete_local": false,"delete_remote": false,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "${mail_server_ip}","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "flagctl"}'
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0
+    # create-task fired an immediate sync (run-imapsync restart); without --noresyncflags
+    # the 3 synced messages are reset to Unseen from the untouched source.
+    ${overwritten} =    Set Variable    False
+    FOR    ${i}    IN RANGE    15
+        ${u}    ${e}    ${c} =    Execute Command
+        ...    runagent -m ${MID} podman exec dovecot doveadm search -u u2 mailbox INBOX unseen | wc -l
+        ...    return_rc=True    return_stdout=True    return_stderr=True
+        Should Be Equal As Integers    ${c}    0
+        ${u} =    Evaluate    "${u}".strip()
+        Run Keyword If    int(${u}) >= 3    Set Test Variable    ${overwritten}    True
+        Run Keyword If    ${overwritten}    Exit For Loop
+        Sleep    1s
+    END
+    Should Be True    ${overwritten}    a non-cron sync must overwrite the Seen flag (control proving --noresyncflags is the fix)
+    [Teardown]    Run Keywords
+    ...    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"task_id": "flagtest", "localuser": "u2"}'
+    ...    AND    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"task_id": "flagctl", "localuser": "u2"}'
