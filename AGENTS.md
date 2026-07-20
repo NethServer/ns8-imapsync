@@ -1,6 +1,10 @@
 # NS8 Module — Architecture Guide
 
-> **Detailed guides:** backend → `AGENTS-backend.md` | frontend → `AGENTS-frontend.md`
+> **Before starting work, read the matching guide:**
+> - **Backend** (actions, events, systemd, Python/bash, Redis, backup) → **read `AGENTS-backend.md`**
+> - **Frontend** (`ui/`, Vue 2, Vuex, Carbon, `ns8-ui-lib`) → **read `AGENTS-frontend.md`**
+>
+> These are not auto-loaded. Read the relevant file with the Read tool before writing any code in that layer.
 
 ## Platform Overview
 NS8 is a modular Linux server platform. Each module runs in a Podman container,
