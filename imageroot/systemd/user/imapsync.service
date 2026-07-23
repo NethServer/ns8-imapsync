@@ -12,12 +12,12 @@ Description=imapsync server
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/imapsync.pid %t/imapsync.ctr-id
-ExecStartPre=mkdir -vp %S/state/imapsync
-ExecStartPre=mkdir -vp %S/state/cron
+ExecStartPre=mkdir -vp %E/state/imapsync
+ExecStartPre=mkdir -vp %E/state/cron
 ExecStartPre=runagent reveal-master-secret
 ExecStartPre=runagent expand-cron
 ExecStart=/usr/bin/podman run \
