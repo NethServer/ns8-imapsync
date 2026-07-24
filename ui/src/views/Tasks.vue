@@ -161,11 +161,20 @@
                     <div v-if="row.last_sync_timestamp" class="sync-status">
                       <NsTag
                         :kind="row.last_sync_exit_code === 0 ? 'green' : 'red'"
-                        :label="row.last_sync_exit_code === 0 ? $t('tasks.sync_success') : $t('tasks.sync_error')"
+                        :label="
+                          row.last_sync_exit_code === 0
+                            ? $t('tasks.sync_success')
+                            : $t('tasks.sync_error')
+                        "
                         size="sm"
                         class="no-margin"
                       />
-                      {{ new Date(row.last_sync_timestamp * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) }}
+                      {{
+                        new Date(row.last_sync_timestamp * 1000).toLocaleString(
+                          undefined,
+                          { dateStyle: "short", timeStyle: "short" }
+                        )
+                      }}
                     </div>
                     <span v-else>{{ $t("tasks.sync_never") }}</span>
                   </cv-data-table-cell>
@@ -181,7 +190,11 @@
                       <cv-overflow-menu-item
                         @click="toggleEditTask(row)"
                         :disabled="row.service"
-                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
+                        :title="
+                          row.service
+                            ? $t('tasks.stop_service_first')
+                            : undefined
+                        "
                         :data-test-id="row.localuser + '-edit-task'"
                       >
                         <NsMenuItem :icon="Edit20" :label="$t('tasks.edit')" />
@@ -203,7 +216,11 @@
                         v-if="row.remoteusername !== ''"
                         @click="toggleDeleteTask(row)"
                         :disabled="row.service"
-                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
+                        :title="
+                          row.service
+                            ? $t('tasks.stop_service_first')
+                            : undefined
+                        "
                         :data-test-id="row.localuser + '-delete-task'"
                       >
                         <NsMenuItem
@@ -225,7 +242,11 @@
                         v-if="row.remoteusername !== '' && row.has_log"
                         @click="downloadLog(row)"
                         :disabled="loading.downloadLog || row.service"
-                        :title="row.service ? $t('tasks.stop_service_first') : undefined"
+                        :title="
+                          row.service
+                            ? $t('tasks.stop_service_first')
+                            : undefined
+                        "
                       >
                         <NsMenuItem
                           :icon="Download20"
@@ -635,12 +656,15 @@ export default {
       }
       const eventId = this.getUuid();
       // register to task error
-      this.core.$root.$once(`${taskAction}-aborted-${eventId}`, (taskResult, taskContext) => {
-        console.error(`${taskContext.action} aborted`, taskResult);
-        if (found) found.service = originalService;
-        this.error.toggleActionTask = this.$t("error.generic_error");
-        this.loading.toggleActionTask = false;
-      });
+      this.core.$root.$once(
+        `${taskAction}-aborted-${eventId}`,
+        (taskResult, taskContext) => {
+          console.error(`${taskContext.action} aborted`, taskResult);
+          if (found) found.service = originalService;
+          this.error.toggleActionTask = this.$t("error.generic_error");
+          this.loading.toggleActionTask = false;
+        }
+      );
       // register to task completion
       this.core.$root.$once(
         `${taskAction}-completed-${eventId}`,
@@ -787,7 +811,9 @@ export default {
           a.href = url;
           const now = new Date();
           const pad = (n) => String(n).padStart(2, "0");
-          const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+          const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
+            now.getDate()
+          )}_${pad(now.getHours())}${pad(now.getMinutes())}`;
           a.download = `imapsync_${task.localuser}_${task.task_id}_${stamp}.log`;
           a.click();
           setTimeout(() => URL.revokeObjectURL(url), 100);
