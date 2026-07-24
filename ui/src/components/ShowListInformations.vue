@@ -10,7 +10,7 @@
     </template>
     <template slot="content">
       <template v-if="loading.toggleListInformations">
-      <div>{{$t("tasks.fetching_statistic_please_wait")}}</div>
+        <div>{{ $t("tasks.fetching_statistic_please_wait") }}</div>
         <cv-skeleton-text :paragraph="true" :line-count="4"></cv-skeleton-text>
       </template>
       <template

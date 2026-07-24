@@ -17,7 +17,7 @@
       <div>{{ $t("tasks.confirm_delete_task_message") }}</div>
     </template>
     <template slot="secondary-button">{{ core.$t("common.cancel") }}</template>
-    <template slot="primary-button">{{ core.$t('common.delete') }}</template>
+    <template slot="primary-button">{{ core.$t("common.delete") }}</template>
   </NsModal>
 </template>
 
