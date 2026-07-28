@@ -57,6 +57,7 @@ buildah config --entrypoint=/ \
     --label="org.nethserver.authorizations=mail@any:mailadm" \
     --label="org.nethserver.rootfull=0" \
     --label="org.nethserver.images=${repobase}/imapsync-binary:${IMAGETAG:-latest}" \
+    --label="org.nethserver.min-core=3.20.1" \
     "${container}"
 # Commit the image
 buildah commit "${container}" "${repobase}/${reponame}"

@@ -60,7 +60,7 @@ export default {
     Settings20,
     Information20,
     Activity20,
-    ArrowsHorizontal20
+    ArrowsHorizontal20,
   },
   mixins: [QueryParamService, UtilService],
   data() {
