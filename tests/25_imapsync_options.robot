@@ -33,7 +33,7 @@ Deliver three unseen messages to the remote user
 Run an inbox-mode task so imapsync gets --setflag1
     [Documentation]    foldersynchronization=inbox makes syncctl add
     ...                --search1=UNSEEN --setflag1=Seen --noresyncflags
-    Create sync task    ${setflagtask}    inbox    false    false    0
+    Create sync task    ${setflagtask}    folders=inbox
     ${props} =    Wait for a completed sync    ${setflagtask}
     Set Suite Variable    ${setflag_first_sync}    ${props['last_sync_timestamp']}
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
@@ -66,7 +66,7 @@ Verify a second run transfers nothing thanks to --search1=UNSEEN
 Run a task with retention so imapsync gets --delete1older
     [Documentation]    delete_remote with delete_remote_older>0 maps to --delete1older=N.
     ...                The messages are fresh, so nothing is expected to be removed.
-    Create sync task    ${oldertask}    all    false    true    5
+    Create sync task    ${oldertask}    delete_remote=true    older=5
     ${props} =    Wait for a completed sync    ${oldertask}
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
 
@@ -89,7 +89,7 @@ Deliver two more unseen messages before the sieve task
 Run an inbox-mode task with sieve so imapsync gets --sievedelivery2
     [Documentation]    sieve_enabled alone is not enough: syncctl only honours it inside the
     ...                FOLDER_INBOX branch, hence foldersynchronization=inbox.
-    Create sync task    ${sievetask}    inbox    true    false    0
+    Create sync task    ${sievetask}    folders=inbox    sieve=true
     ${props} =    Wait for a completed sync    ${sievetask}
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
     ...    msg=the sieve run failed; check that dovecot advertises the FILTER=SIEVE capability
@@ -124,7 +124,9 @@ Deliver two marked messages to the remote user
     Wait until message count is    ${remoteuser}    unseen    ${target}
 
 Run a sieve task over the marked messages
-    Create sync task    sievex    inbox    true    false    0
+    [Documentation]    syncctl only honours SIEVE_ENABLED inside the FOLDER_INBOX branch,
+    ...                so inbox mode is what makes --sievedelivery2 reach imapsync.
+    Create sync task    sievex    folders=inbox    sieve=true
     ${props} =    Wait for a completed sync    sievex
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
 
