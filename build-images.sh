@@ -14,16 +14,27 @@ repobase="${REPOBASE:-ghcr.io/nethserver}"
 
 #Create webtop-webapp container
 reponame="imapsync-binary"
-container=$(buildah from docker.io/library/alpine:3.22.5)
+container=$(buildah from docker.io/library/alpine:3.23.5)
 buildah run "${container}" /bin/sh <<'EOF'
 set -e
 apk add --no-cache imapsync cronie patch
 EOF
 buildah add "${container}" imapsync/ /
 buildah run "${container}" cp -vp /usr/bin/imapsync{,.orig}
-buildah run "${container}" patch -d /usr/bin -p1 < imapsync-sievedelivery2.patch
-buildah run "${container}" patch -d /usr/bin -p1 < imapsync-delete1older.patch
-buildah run "${container}" patch -d /usr/bin -p1 < imapsync-setflag1.patch
+buildah run "${container}" patch -F0 -d /usr/bin -p1 < imapsync-sievedelivery2.patch
+buildah run "${container}" patch -F0 -d /usr/bin -p1 < imapsync-delete1older.patch
+buildah run "${container}" patch -F0 -d /usr/bin -p1 < imapsync-setflag1.patch
+# A fuzzy hunk can register an option in the wrong sub: build green, option ignored.
+buildah run "${container}" /bin/sh <<'EOF'
+set -e
+perl -c /usr/bin/imapsync
+for opt in --sievedelivery2 --delete1older=30 --setflag1=Seen ; do
+    if imapsync "${opt}" --justconnect 2>&1 | grep -qi 'misspelled or unknown options' ; then
+        echo "FATAL: patched imapsync does not accept ${opt}" >&2
+        exit 1
+    fi
+done
+EOF
 # Commit the image
 buildah commit --rm "${container}" "${repobase}/${reponame}"
 

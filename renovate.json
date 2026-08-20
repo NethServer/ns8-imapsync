@@ -2,5 +2,13 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>NethServer/.github:ns8-automerge"
+  ],
+  "packageRules": [
+    {
+      "description": "Alpine 3.24 ships no imapsync package: the aport is disabled upstream (arch= commented out) since aports#17750. Fixed in edge as 2.314-r1 but never backported to 3.24-stable. Drop this cap once a stable branch >= 3.24 ships imapsync again.",
+      "matchDatasources": ["docker"],
+      "matchDepNames": ["alpine"],
+      "allowedVersions": "<3.24"
+    }
   ]
 }

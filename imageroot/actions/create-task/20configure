@@ -59,7 +59,7 @@ delete_remote = data.get("delete_remote",False)
 delete_remote_older = data.get("delete_remote_older", 0)
 if delete_local:
     delete_local = "--delete2"
-    delete_folder = "--delete2foders"
+    delete_folder = "--delete2folders"
 else:
     delete_local = ""
     delete_folder = ""

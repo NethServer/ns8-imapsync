@@ -157,12 +157,26 @@ Verify Public and Shared folders were NOT synced to u2
     Should Be True    ${success}    Public and Shared folders should NOT be synced
 
 Verify no permission errors in imapsync logs
-    ${log_out}    ${log_err}    ${log_rc} =    Execute Command
-    ...    runagent -m ${MID} bash -c "podman exec imapsync grep -i 'NOPERM|Could not select' /etc/imapsync/public_shared_test.log && echo FOUND || echo OK"
-    ...    return_rc=True    return_stdout=True    return_stderr=True
-    Should Be Equal As Integers    ${log_rc}    0
-    ${log_clean} =    Evaluate    "${log_out}".strip()
-    Should Be Equal    ${log_clean}    OK    No permission errors should occur
+    [Documentation]    Assert the log exists before grepping it: a missing file reads as
+    ...                a pass otherwise.
+    ${logfile} =    Set Variable    /etc/imapsync/u2_public_shared_test.log
+    # The sync runs detached, so wait for the log rather than reading it once.
+    FOR    ${i}    IN RANGE    30
+        ${exists}    ${rc} =    Execute Command
+        ...    runagent -m ${imapsync_module_id} podman exec imapsync sh -c "test -s ${logfile} && echo YES || echo NO"
+        ...    return_rc=True
+        Should Be Equal As Integers    ${rc}    0
+        IF    '${exists.strip()}' == 'YES'
+            BREAK
+        END
+        Sleep    2s
+    END
+    Should Be Equal    ${exists.strip()}    YES    imapsync log ${logfile} is missing or empty
+    # grep exits 1 when the count is 0, so the return code is not checked here
+    ${matches}    ${rc} =    Execute Command
+    ...    runagent -m ${imapsync_module_id} podman exec imapsync grep -Eic "NOPERM|Could not select" ${logfile}
+    ...    return_rc=True
+    Should Be Equal As Integers    ${matches.strip()}    0    permission errors found in ${logfile}
 
 Delete public_shared_test task
     ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/delete-task --data '{"localuser": "u2","task_id": "public_shared_test"}'
