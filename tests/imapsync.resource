@@ -47,9 +47,9 @@ Create sync task
     ...                assertions on message counts.
     [Arguments]    ${task_id}    ${folders}=all    ${sieve}=false    ${delete_remote}=false
     ...            ${older}=0    ${cron}=${EMPTY}    ${exclude}=${EMPTY}
-    ...            ${security}=tls    ${port}=143
+    ...            ${security}=tls    ${port}=143    ${host}=${mail_host}
     ${rc} =    Execute Command
-    ...    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "${cron}","delete_local": false,"delete_remote": ${delete_remote},"delete_remote_older": ${older},"exclude": "${exclude}","foldersynchronization": "${folders}","localuser": "${localuser}","remotehostname": "${mail_host}","remotepassword": "Nethesis,1234","remoteport": ${port},"remoteusername": "${remoteuser}","security": "${security}","sieve_enabled": ${sieve},"task_id": "${task_id}"}'
+    ...    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "${cron}","delete_local": false,"delete_remote": ${delete_remote},"delete_remote_older": ${older},"exclude": "${exclude}","foldersynchronization": "${folders}","localuser": "${localuser}","remotehostname": "${host}","remotepassword": "Nethesis,1234","remoteport": ${port},"remoteusername": "${remoteuser}","security": "${security}","sieve_enabled": ${sieve},"task_id": "${task_id}"}'
     ...    return_rc=True    return_stdout=False
     Should Be Equal As Integers    ${rc}    0
 
@@ -123,3 +123,15 @@ Retrieve the mail host
     ${ocfg} =    Run task    module/${imapsync_module_id}/get-configuration    {}
     Should Not Be Empty    ${ocfg['mail_host']}
     Set Suite Variable    ${mail_host}    ${ocfg['mail_host']}
+
+Wait until the task service is
+    [Documentation]    service_running reflects the presence of the task pidfile.
+    [Arguments]    ${task_id}    ${running}
+    FOR    ${i}    IN RANGE    30
+        ${props} =    Task properties    ${task_id}
+        IF    $props['service_running'] == $running
+            RETURN    ${props}
+        END
+        Sleep    2s
+    END
+    Fail    task ${task_id}: service_running never became ${running}

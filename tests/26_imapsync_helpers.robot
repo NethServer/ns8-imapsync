@@ -10,6 +10,8 @@ Suite Teardown    Delete every task
 
 *** Variables ***
 ${csvfile}          /tmp/imapsync-import.csv
+# TEST-NET-1 (RFC 5737): reserved for documentation, so the connect always hangs
+${blackhole}        192.0.2.1
 
 *** Keywords ***
 Write CSV
@@ -144,3 +146,25 @@ Verify the vmail master secret was fetched
     ...                sync would fail to authenticate on host2.
     ${secret} =    Module state file    imapsync/vmail.pwd
     Should Not Be Empty    ${secret.strip()}
+
+Stop a running sync without losing the last status
+    [Documentation]    A task pointed at TEST-NET-1 hangs on the TCP connect, which gives a
+    ...                wide, non-racy window to stop it. syncctl treats the resulting exit
+    ...                code 143 as a manual stop and must not overwrite .status, so the task
+    ...                keeps reporting no completed run rather than a bogus failure.
+    Create sync task    stopt1    host=${blackhole}
+    Wait until the task service is    stopt1    ${TRUE}
+    ${rc} =    Execute Command
+    ...    api-cli run module/${imapsync_module_id}/stop-task --data '{"localuser": "${localuser}","task_id": "stopt1"}'
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0
+    ${props} =    Wait until the task service is    stopt1    ${FALSE}
+    Should Be Equal    ${props['last_sync_exit_code']}    ${None}
+    ...    msg=a manual stop overwrote the last sync status
+
+Stopping an already stopped task is harmless
+    ${rc} =    Execute Command
+    ...    api-cli run module/${imapsync_module_id}/stop-task --data '{"localuser": "${localuser}","task_id": "stopt1"}'
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0
+    [Teardown]    Delete sync task    stopt1
