@@ -351,9 +351,7 @@ def main():
                     skipped += 1
                     print()
                     continue
-                # Reuse the id so the task is updated in place: a fresh id would leave
-                # two crons racing on the same mailbox, and dropping the old task would
-                # lose its log and status.
+                # A fresh id would leave two crons racing on the same mailbox.
                 task_data['task_id'] = existing[key]
                 verb = 'Updating'
             if create_task(module_id, task_data, verb):
@@ -384,8 +382,7 @@ def main():
     print(summary)
     print("=" * 70)
     
-    # A skipped duplicate is not an error: re-running an import after fixing a few
-    # rows must stay quiet about the ones already done.
+    # A skipped duplicate is not an error: re-running an import stays quiet.
     sys.exit(1 if failed > 0 else 0)
 
 

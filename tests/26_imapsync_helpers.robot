@@ -35,8 +35,7 @@ Import the CSV with
     RETURN    ${out}    ${rc}
 
 One row CSV
-    [Documentation]    A single row for ${localuser} pulling ${remoteuser}, so the sync
-    ...                triple stays the same while the port and encryption can vary.
+    [Documentation]    Same sync triple throughout, so only the port and encryption vary.
     [Arguments]    ${port}=143    ${security}=tls    ${password}=Nethesis,1234
     Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"${password}",${mail_host},${port},${security}\n
 
@@ -185,8 +184,8 @@ Stopping an already stopped task is harmless
     [Teardown]    Delete sync task    stopt1
 
 Skip a row that is already configured
-    [Documentation]    Re-running an import after fixing a few rows must not double every
-    ...                sync, and must not look like a failure either.
+    [Documentation]    Re-running an import must not double every sync, nor look like a
+    ...                failure.
     Delete every task
     One row CSV
     ${out}    ${rc} =    Import the CSV
@@ -201,8 +200,7 @@ Skip a row that is already configured
     Set Suite Variable    ${dedup_id}    ${id}
 
 Match an already configured row whatever the case
-    [Documentation]    dovecot authenticates with auth_username_format %Ln, so the case
-    ...                carries no meaning.
+    [Documentation]    dovecot authenticates with auth_username_format %Ln.
     Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser.upper()},${remoteuser.upper()},"Nethesis,1234",${mail_host},143,tls\n
     ${out}    ${rc} =    Import the CSV
     Should Contain    ${out}    Skipped
@@ -210,8 +208,7 @@ Match an already configured row whatever the case
     Should Be Equal As Integers    ${count}    1
 
 Update an existing row in place
-    [Documentation]    A fresh id would leave two crons racing on the same mailbox, and
-    ...                dropping the old task would lose its log, so --update reuses the id.
+    [Documentation]    A fresh id would leave two crons racing on the same mailbox.
     One row CSV    port=993    security=ssl
     ${out}    ${rc} =    Import the CSV with    --update
     Should Be Equal As Integers    ${rc}    0    update failed:\n${out}
@@ -223,8 +220,8 @@ Update an existing row in place
     Should Be Equal    ${props['security']}    ssl
 
 Keep the previous settings when an update is refused
-    [Documentation]    create-task validates the credentials and rolls back on refusal, so
-    ...                a bad password in the file cannot break a working task.
+    [Documentation]    create-task rolls back on refusal, so a bad password in the file
+    ...                cannot break a working task.
     One row CSV    port=993    security=ssl    password=WrongPassword,000
     ${out}    ${rc} =    Import the CSV with    --update
     Should Not Be Equal As Integers    ${rc}    0    a refused update must be reported
