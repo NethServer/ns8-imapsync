@@ -139,19 +139,30 @@ Verify the vmail master secret was fetched
     Should Not Be Empty    ${secret.strip()}
 
 Stop a running sync without losing the last status
-    [Documentation]    A task pointed at TEST-NET-1 hangs on the TCP connect, which gives a
-    ...                wide, non-racy window to stop it. syncctl treats the resulting exit
-    ...                code 143 as a manual stop and must not overwrite .status, so the task
-    ...                keeps reporting no completed run rather than a bogus failure.
-    Create sync task    stopt1    host=${blackhole}
+    [Documentation]    syncctl treats exit code 143 as a manual stop and must leave .status
+    ...                alone, so a stopped run must not overwrite the previous result.
+    Create sync task    stopt1
+    ${first} =    Wait for a completed sync    stopt1
+    # create-task validates the connection, so the host can only be pointed at TEST-NET-1
+    # (RFC 5737) afterwards. The connect then hangs, giving a wide window to stop the sync.
+    ${rc} =    Execute Command
+    ...    runagent -m ${imapsync_module_id} sh -c 'sed -i "s/^REMOTEHOSTNAME=.*/REMOTEHOSTNAME=${blackhole}/" "$AGENT_STATE_DIR/imapsync/${localuser}_stopt1.env"'
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0
+    ${rc} =    Execute Command
+    ...    api-cli run module/${imapsync_module_id}/start-task --data '{"localuser": "${localuser}","task_id": "stopt1"}'
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0
     Wait until the task service is    stopt1    ${TRUE}
     ${rc} =    Execute Command
     ...    api-cli run module/${imapsync_module_id}/stop-task --data '{"localuser": "${localuser}","task_id": "stopt1"}'
     ...    return_rc=True    return_stdout=False
     Should Be Equal As Integers    ${rc}    0
     ${props} =    Wait until the task service is    stopt1    ${FALSE}
-    Should Be Equal    ${props['last_sync_exit_code']}    ${None}
-    ...    msg=a manual stop overwrote the last sync status
+    Should Be Equal    ${props['last_sync_timestamp']}    ${first['last_sync_timestamp']}
+    ...    msg=the manual stop overwrote the last sync status
+    Should Be Equal    ${props['last_sync_exit_code']}    ${first['last_sync_exit_code']}
+    ...    msg=the manual stop overwrote the last sync exit code
 
 Stopping an already stopped task is harmless
     ${rc} =    Execute Command
