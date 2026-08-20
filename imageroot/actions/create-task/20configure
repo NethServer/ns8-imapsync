@@ -6,6 +6,7 @@
 #
 
 import os
+import shutil
 import sys
 import json
 
@@ -14,6 +15,22 @@ data = json.load(sys.stdin)
 task_id = data["task_id"]
 # Local user to sync on
 localuser = data["localuser"]
+
+# The credentials are validated by the next step, once this one has already written
+# the task files. Snapshot them so a refused edit is rolled back to its previous
+# values instead of keeping the credentials that were just rejected. The .rollback
+# suffix keeps the copies out of the imapsync/*.env and cron/*.cron globs.
+task_files = [
+    "imapsync/" + localuser + '_' + task_id + ".env",
+    "imapsync/" + localuser + '_' + task_id + ".pwd",
+    "cron/" + localuser + '_' + task_id + ".cron",
+]
+for path in task_files:
+    if os.path.exists(path):
+        shutil.copy2(path, path + ".rollback")
+    elif os.path.exists(path + ".rollback"):
+        # leftover from a run that died before committing
+        os.remove(path + ".rollback")
 # remote credentials
 remotehostname = data["remotehostname"]
 remoteport = data["remoteport"]

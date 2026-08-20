@@ -20,19 +20,43 @@ localuser= data["localuser"]
 # -t is required: without a TTY syncctl sends its output to the FDs of PID 1,
 # so the caller captures nothing and every branch below is skipped.
 result = subprocess.run(["podman","exec","-t","imapsync","syncctl", "validation",localuser+'_'+task_id], check=False, capture_output=True, text=True)
-if 'ERR_AUTHENTICATION_FAILURE_USER1' in result.stdout:
-    agent.set_status('validation-failed')
-    json.dump([{'field':'createTask','parameter':'createTask','value':'bad_user_credentials','error':'bad_user_credentials'}],fp=sys.stdout, default=str)
-    sys.exit(2)
-elif 'SSL connect attempt failed' in result.stdout:
-    agent.set_status('validation-failed')
-    json.dump([{'field':'createTask','parameter':'createTask','value':'SSL_encryption_error','error':'SSL_encryption_error'}],fp=sys.stdout, default=str)
-    sys.exit(4)
-elif 'ERR_EXIT_TLS_FAILURE' in result.stdout:
-    agent.set_status('validation-failed')
-    json.dump([{'field':'createTask','parameter':'createTask','value':'STARTTLS_not_allowed_use_IMAPS','error':'STARTTLS_not_allowed_use_IMAPS'}],fp=sys.stdout, default=str)
-    sys.exit(4)
-elif 'ERR_CONNECTION_FAILURE_HOST1' in result.stdout:
-    agent.set_status('validation-failed')
-    json.dump([{'field':'createTask','parameter':'createTask','value':'Check_hostname_or_tcp_port','error':'Check_hostname_or_tcp_port'}],fp=sys.stdout, default=str)
-    sys.exit(3)
+task_files = [
+    "imapsync/" + localuser + '_' + task_id + ".env",
+    "imapsync/" + localuser + '_' + task_id + ".pwd",
+    "cron/" + localuser + '_' + task_id + ".cron",
+]
+
+
+def rollback():
+    """Undo what 20configure wrote: restore an edited task, drop a new one."""
+    for path in task_files:
+        snapshot = path + ".rollback"
+        if os.path.exists(snapshot):
+            os.replace(snapshot, path)
+        elif os.path.exists(path):
+            os.remove(path)
+
+
+def commit():
+    for path in task_files:
+        snapshot = path + ".rollback"
+        if os.path.exists(snapshot):
+            os.remove(snapshot)
+
+
+# Checked in order, first match wins, as before.
+validation_errors = [
+    ('ERR_AUTHENTICATION_FAILURE_USER1', 2, 'bad_user_credentials'),
+    ('SSL connect attempt failed', 4, 'SSL_encryption_error'),
+    ('ERR_EXIT_TLS_FAILURE', 4, 'STARTTLS_not_allowed_use_IMAPS'),
+    ('ERR_CONNECTION_FAILURE_HOST1', 3, 'Check_hostname_or_tcp_port'),
+]
+for needle, exit_code, error in validation_errors:
+    if needle in result.stdout:
+        rollback()
+        agent.set_status('validation-failed')
+        json.dump([{'field': 'createTask', 'parameter': 'createTask', 'value': error, 'error': error}],
+                  fp=sys.stdout, default=str)
+        sys.exit(exit_code)
+
+commit()
