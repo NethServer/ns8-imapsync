@@ -10,6 +10,9 @@ Suite Teardown    Delete every task
 
 *** Variables ***
 ${csvfile}          /tmp/imapsync-import.csv
+# A second remote account, so the two CSV rows are distinct syncs: rows differing only
+# by port would now be deduplicated.
+${remoteuser2}      u1
 # TEST-NET-1 (RFC 5737): reserved for documentation, so the connect always hangs
 ${blackhole}        192.0.2.1
 
@@ -55,7 +58,7 @@ Import two tasks from a CSV
     ...                columns and generates the task id itself.
     ${count} =    Task count
     Should Be Equal As Integers    ${count}    0    the suite expects no leftover task
-    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},143,tls\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},993,ssl\n
+    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},143,tls\n${localuser},${remoteuser2},"Nethesis,1234",${mail_host},993,ssl\n
     ${out}    ${rc} =    Import the CSV
     Should Be Equal As Integers    ${rc}    0    CSV import failed:\n${out}
     Should Contain    ${out}    2 successful
@@ -78,9 +81,11 @@ Verify the CSV columns and the auto-filled defaults
     Should Be Equal    ${securities}    ${{ ['ssl', 'tls'] }}
     ${ports} =    Evaluate    sorted(int(p['remoteport']) for p in $result['user_properties'])
     Should Be Equal    ${ports}    ${{ [143, 993] }}
+    ${remotes} =    Evaluate    sorted(p['remoteusername'] for p in $result['user_properties'])
+    ${expected} =    Evaluate    sorted([$remoteuser, $remoteuser2])
+    Should Be Equal    ${remotes}    ${expected}
     FOR    ${props}    IN    @{result['user_properties']}
         Should Be Equal    ${props['localuser']}          ${localuser}
-        Should Be Equal    ${props['remoteusername']}     ${remoteuser}
         Should Be Equal    ${props['foldersynchronization']}    all
         Should Be Equal    ${props['cron']}               ${EMPTY}
         Should Not Be True    ${props['delete_local']}
