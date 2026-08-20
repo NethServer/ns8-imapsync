@@ -10,35 +10,35 @@ ${maildomain}       domain.test
 
 *** Keywords ***
 Count messages
-    [Documentation]    Messages matching ${query} in the INBOX of ${user}
-    [Arguments]    ${user}    ${query}
+    [Documentation]    Messages matching ${query} in ${mailbox} of ${user}
+    [Arguments]    ${user}    ${query}    ${mailbox}=INBOX
     # No pipe into wc: that would hide doveadm's exit code (67 on an unknown user).
     ${out}    ${rc} =    Execute Command
-    ...    runagent -m ${MID} podman exec dovecot doveadm search -u ${user} mailbox INBOX ${query}
+    ...    runagent -m ${MID} podman exec dovecot doveadm search -u ${user} mailbox ${mailbox} ${query}
     ...    return_rc=True
     Should Be Equal As Integers    ${rc}    0
     ${count} =    Evaluate    len([l for l in $out.splitlines() if l.strip()])
     RETURN    ${count}
 
 Wait until message count is
-    [Arguments]    ${user}    ${query}    ${expected}
+    [Arguments]    ${user}    ${query}    ${expected}    ${mailbox}=INBOX
     FOR    ${i}    IN RANGE    30
-        ${count} =    Count messages    ${user}    ${query}
+        ${count} =    Count messages    ${user}    ${query}    ${mailbox}
         IF    ${count} == ${expected}
             RETURN    ${count}
         END
         Sleep    2s
     END
-    ${count} =    Count messages    ${user}    ${query}
+    ${count} =    Count messages    ${user}    ${query}    ${mailbox}
     Should Be Equal As Integers    ${count}    ${expected}
-    ...    msg=${user} INBOX "${query}": expected ${expected}, got ${count}
+    ...    msg=${user} ${mailbox} "${query}": expected ${expected}, got ${count}
     RETURN    ${count}
 
 Deliver messages to
-    [Arguments]    ${user}    ${count}
+    [Arguments]    ${user}    ${count}    ${subject}=${EMPTY}
     FOR    ${i}    IN RANGE    ${count}
         ${rc} =    Execute Command
-        ...    MAIL_SERVER=smtp://127.0.0.1:10587 bash /tmp/test-msa.sh ${user}@${maildomain} u1@${maildomain}
+        ...    SUBJECT='${subject}' MAIL_SERVER=smtp://127.0.0.1:10587 bash /tmp/test-msa.sh ${user}@${maildomain} u1@${maildomain}
         ...    return_rc=True    return_stdout=False
         Should Be Equal As Integers    ${rc}    0
     END
@@ -138,3 +138,20 @@ Wait until the task service is
         Sleep    2s
     END
     Fail    task ${task_id}: service_running never became ${running}
+
+Install an active sieve script for
+    [Documentation]    doveadm sieve put reads the script on stdin, -a activates it, which
+    ...                is what FILTER SIEVE DELIVERY runs.
+    [Arguments]    ${user}    ${name}    ${script}
+    ${rc} =    Execute Command
+    ...    printf '%s' '${script}' | runagent -m ${MID} podman exec -i dovecot doveadm sieve put -u ${user} -a ${name}
+    ...    return_rc=True    return_stdout=False
+    Should Be Equal As Integers    ${rc}    0    cannot install the sieve script for ${user}
+
+Remove the sieve script of
+    [Documentation]    dovecot refuses to delete the active script, so deactivate first.
+    [Arguments]    ${user}    ${name}
+    Execute Command    runagent -m ${MID} podman exec dovecot doveadm sieve deactivate -u ${user}
+    ...    return_stdout=False
+    Execute Command    runagent -m ${MID} podman exec dovecot doveadm sieve delete -u ${user} ${name}
+    ...    return_stdout=False

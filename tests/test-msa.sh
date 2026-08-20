@@ -19,7 +19,7 @@ curl -k -s -v --upload-file - --crlf \
     ${MAIL_SERVER:-127.0.0.1}/${EHLO_HOST:-${mfrom/#*@/}} <<EOF
 From: <${mfrom}>
 To: <${mto}>
-Subject: Test ${random}
+Subject: ${SUBJECT:-Test ${random}}
 Message-ID: <$(uuidgen)@${mfrom/#*@/}>
 Date: $(date -R)
 MIME-Version: 1.0
