@@ -142,17 +142,18 @@ def parse_csv_row(row: dict, existing_ids: set) -> dict:
     return task_data
 
 
-def existing_syncs() -> set:
-    """The (local user, remote user, remote host) triples already configured.
+def existing_syncs() -> dict:
+    """Maps each configured (local user, remote user, remote host) triple to its task id.
 
     A local user may legitimately sync from several remote accounts, so only the
     whole triple identifies the same sync twice.
     """
-    syncs = set()
+    syncs = {}
     for env_file in glob.iglob("imapsync/*.env"):
         env = agent.read_envfile(env_file)
-        syncs.add(_sync_key(env.get('LOCALUSER', ''), env.get('REMOTEUSERNAME', ''),
-                            env.get('REMOTEHOSTNAME', '')))
+        key = _sync_key(env.get('LOCALUSER', ''), env.get('REMOTEUSERNAME', ''),
+                        env.get('REMOTEHOSTNAME', ''))
+        syncs[key] = env.get('TASK_ID', '')
     return syncs
 
 
@@ -168,11 +169,11 @@ def sync_key(task_data: dict) -> tuple:
                      task_data['remotehostname'])
 
 
-def create_task(module_id: str, task_data: dict) -> bool:
-    """Create a task via agent.tasks.run()"""
+def create_task(module_id: str, task_data: dict, verb: str = 'Creating') -> bool:
+    """Create a task via agent.tasks.run(). Reusing an existing task id updates it."""
     local_user = task_data.get('localuser', 'unknown')
     task_id = task_data.get('task_id', 'unknown')
-    print(f"Creating task for {local_user} (ID: {task_id})...")
+    print(f"{verb} task for {local_user} (ID: {task_id})...")
     
     try:
         create_retval = agent.tasks.run(
@@ -205,9 +206,10 @@ USAGE:
 OPTIONS:
     -h, --help             : Show this help message
     -c, --check            : Check CSV format without creating tasks
-    -f, --force            : Create a task even if that local user already syncs
-                             the same remote account (duplicates are skipped by
-                             default, so an import can safely be re-run)
+    -u, --update           : Update the existing task instead of skipping it, which
+                             is how credentials are changed in bulk. Rows already
+                             configured are skipped otherwise, so an import can
+                             safely be re-run
 
 EXAMPLE:
     runagent -m imapsync1 import-csv-tasks < users.csv
@@ -262,9 +264,9 @@ def main():
     if check_only:
         args = [arg for arg in args if arg not in ['-c', '--check']]
     
-    force = '-f' in args or '--force' in args
-    if force:
-        args = [arg for arg in args if arg not in ['-f', '--force']]
+    update = '-u' in args or '--update' in args
+    if update:
+        args = [arg for arg in args if arg not in ['-u', '--update']]
     
     # Validate no extra arguments
     if len(args) != 0:
@@ -315,7 +317,7 @@ def main():
         print(f"✓ All {len(rows)} rows validated successfully")
         if duplicates:
             print(f"⊘ {duplicates} row(s) would be skipped as already configured, "
-                  f"use --force to create them anyway")
+                  f"use --update to apply the file to them")
         print(f"✓ Generated {len(existing_ids)} unique task IDs")
         print("\n✓ CSV file is valid. No tasks were created (check-only mode).")
         sys.exit(0)
@@ -324,24 +326,41 @@ def main():
     print(f"\n📦 Starting task creation with module: {module_id}")
     print(f"   Processing {len(rows)} user(s)...\n")
     
-    successful = 0
+    created = 0
+    updated = 0
     failed = 0
     skipped = 0
     existing_ids = set()
-    seen_syncs = set() if force else existing_syncs()
+    existing = existing_syncs()
+    processed = set()
     
     for idx, row in enumerate(rows, start=1):
         try:
             task_data = parse_csv_row(row, existing_ids)
             key = sync_key(task_data)
-            if key in seen_syncs:
-                print(f"⊘ Skipped row {idx}: {key[0]} already syncs {key[1]}@{key[2]}")
+            if key in processed:
+                print(f"⊘ Skipped row {idx}: {key[1]}@{key[2]} appears twice in this file")
                 skipped += 1
                 print()
                 continue
-            seen_syncs.add(key)
-            if create_task(module_id, task_data):
-                successful += 1
+            processed.add(key)
+            verb = 'Creating'
+            if key in existing:
+                if not update:
+                    print(f"⊘ Skipped row {idx}: {key[0]} already syncs {key[1]}@{key[2]}")
+                    skipped += 1
+                    print()
+                    continue
+                # Reuse the id so the task is updated in place: a fresh id would leave
+                # two crons racing on the same mailbox, and dropping the old task would
+                # lose its log and status.
+                task_data['task_id'] = existing[key]
+                verb = 'Updating'
+            if create_task(module_id, task_data, verb):
+                if verb == 'Updating':
+                    updated += 1
+                else:
+                    created += 1
             else:
                 failed += 1
         except KeyError as e:
@@ -357,9 +376,11 @@ def main():
     
     # Summary
     print("=" * 70)
-    summary = f"📊 Summary: {successful} successful, {failed} failed"
+    summary = f"📊 Summary: {created} created, {failed} failed"
+    if updated:
+        summary += f", {updated} updated"
     if skipped:
-        summary += f", {skipped} skipped as already configured"
+        summary += f", {skipped} skipped"
     print(summary)
     print("=" * 70)
     
