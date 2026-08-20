@@ -49,7 +49,7 @@ Create sync task
     ...            ${older}=0    ${cron}=${EMPTY}    ${exclude}=${EMPTY}
     ...            ${security}=tls    ${port}=143
     ${rc} =    Execute Command
-    ...    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "${cron}","delete_local": false,"delete_remote": ${delete_remote},"delete_remote_older": ${older},"exclude": "${exclude}","foldersynchronization": "${folders}","localuser": "${localuser}","remotehostname": "${mail_host}","remotepassword": "Nethesis,1234","remoteport": ${port},"remoteusername": "${remoteuser}","security": "${security}","task_id": "${task_id}"}'
+    ...    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "${cron}","delete_local": false,"delete_remote": ${delete_remote},"delete_remote_older": ${older},"exclude": "${exclude}","foldersynchronization": "${folders}","localuser": "${localuser}","remotehostname": "${mail_host}","remotepassword": "Nethesis,1234","remoteport": ${port},"remoteusername": "${remoteuser}","security": "${security}","sieve_enabled": ${sieve},"task_id": "${task_id}"}'
     ...    return_rc=True    return_stdout=False
     Should Be Equal As Integers    ${rc}    0
 
