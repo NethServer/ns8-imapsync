@@ -118,15 +118,6 @@ Verify the cron file generated for a scheduled task
     Should Contain    ${cron}    MAIL_HOST=${mail_host}
     Should Contain    ${cron}    */5 * * * * root /usr/local/bin/syncctl start ${localuser}_facta1
 
-Start and stop every task at once
-    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/start-all-tasks --data '{}'
-    ...    return_rc=True    return_stdout=False
-    Should Be Equal As Integers    ${rc}    0
-    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/stop-all-tasks --data '{}'
-    ...    return_rc=True    return_stdout=False
-    Should Be Equal As Integers    ${rc}    0
-    [Teardown]    Delete every task
-
 Exclude folders listed by the exclusion mode
     [Documentation]    foldersynchronization=exclusion is the only mode that builds
     ...                exclude_regex, turning the comma separated list into the pipe

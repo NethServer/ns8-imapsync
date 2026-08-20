@@ -162,10 +162,17 @@ Verify no permission errors in imapsync logs
     ...                log is really there before grepping it, otherwise a missing file
     ...                reads as a pass.
     ${logfile} =    Set Variable    /etc/imapsync/u2_public_shared_test.log
-    ${exists}    ${rc} =    Execute Command
-    ...    runagent -m ${imapsync_module_id} podman exec imapsync sh -c "test -s ${logfile} && echo YES || echo NO"
-    ...    return_rc=True
-    Should Be Equal As Integers    ${rc}    0
+    # The sync runs detached, so wait for the log rather than reading it once.
+    FOR    ${i}    IN RANGE    30
+        ${exists}    ${rc} =    Execute Command
+        ...    runagent -m ${imapsync_module_id} podman exec imapsync sh -c "test -s ${logfile} && echo YES || echo NO"
+        ...    return_rc=True
+        Should Be Equal As Integers    ${rc}    0
+        IF    '${exists.strip()}' == 'YES'
+            BREAK
+        END
+        Sleep    2s
+    END
     Should Be Equal    ${exists.strip()}    YES    imapsync log ${logfile} is missing or empty
     # grep exits 1 when the count is 0, so the return code is not checked here
     ${matches}    ${rc} =    Execute Command

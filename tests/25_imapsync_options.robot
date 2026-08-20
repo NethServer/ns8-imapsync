@@ -37,7 +37,7 @@ Run an inbox-mode task so imapsync gets --setflag1
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
 
 Verify imapsync accepted --setflag1
-    Verify imapsync accepted every option    ${setflagtask}
+    Verify imapsync accepts    --setflag1=Seen
 
 Verify --setflag1 flagged the remote messages as Seen
     [Documentation]    The transferred messages must now carry \\Seen on host1. Without the
@@ -75,7 +75,7 @@ Run a task with retention so imapsync gets --delete1older
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
 
 Verify imapsync accepted --delete1older
-    Verify imapsync accepted every option    ${oldertask}
+    Verify imapsync accepts    --delete1older=30
 
 Verify list-tasks reports the retention back
     [Documentation]    Also covers the --delete1older= parsing in list-tasks/20read
@@ -99,7 +99,7 @@ Run an inbox-mode task with sieve so imapsync gets --sievedelivery2
     ...    msg=the sieve run failed; check that dovecot advertises the FILTER=SIEVE capability
 
 Verify imapsync accepted --sievedelivery2
-    Verify imapsync accepted every option    ${sievetask}
+    Verify imapsync accepts    --sievedelivery2
 
 Verify the sievedelivery2 branch really ran
     [Documentation]    The patch prints this line just before issuing FILTER SIEVE DELIVERY,

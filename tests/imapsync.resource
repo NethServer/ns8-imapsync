@@ -12,11 +12,13 @@ ${maildomain}       domain.test
 Count messages
     [Documentation]    Messages matching ${query} in the INBOX of ${user}
     [Arguments]    ${user}    ${query}
+    # No pipe: piping into wc would hide doveadm's own exit code, and a broken
+    # command would read as "no message".
     ${out}    ${rc} =    Execute Command
-    ...    runagent -m ${MID} podman exec dovecot doveadm search -u ${user} mailbox INBOX ${query} | wc -l
+    ...    runagent -m ${MID} podman exec dovecot doveadm search -u ${user} mailbox INBOX ${query}
     ...    return_rc=True
     Should Be Equal As Integers    ${rc}    0
-    ${count} =    Evaluate    int($out)
+    ${count} =    Evaluate    len([l for l in $out.splitlines() if l.strip()])
     RETURN    ${count}
 
 Wait until message count is
@@ -106,16 +108,18 @@ Read the task log
     Should Not Be Empty    ${result['log_content']}
     RETURN    ${result['log_content']}
 
-Verify imapsync accepted every option
-    [Documentation]    imapsync answers an unknown option with "Found N supplementary
-    ...                arguments" followed by "misspelled or unknown options". That is the
-    ...                exact signature of a local patch no longer applying.
-    [Arguments]    ${task_id}
-    ${log} =    Read the task log    ${task_id}
-    Should Not Contain    ${log}    supplementary arguments
-    ...    msg=imapsync rejected an option of task ${task_id}: a local patch no longer applies
-    Should Not Contain    ${log}    misspelled or unknown options
-    ...    msg=imapsync rejected an option of task ${task_id}: a local patch no longer applies
+Verify imapsync accepts
+    [Documentation]    imapsync is built with Getopt::Long pass_through, so an unregistered
+    ...                option is dropped silently and the run still exits 0. Reading the task
+    ...                log proves nothing: syncctl passes empty placeholders first, and the
+    ...                complaint only appears when the offending option comes first. Call
+    ...                imapsync directly, like the build assertion does.
+    [Arguments]    ${option}
+    ${out}    ${rc} =    Execute Command
+    ...    runagent -m ${imapsync_module_id} podman exec imapsync imapsync ${option} --justconnect
+    ...    return_rc=True
+    Should Not Contain    ${out}    misspelled or unknown options
+    ...    msg=imapsync rejected ${option}: a local patch no longer applies
 
 Retrieve the mail host
     [Documentation]    mail_modules_value is only a suite variable of 20_imapsync.robot, so
