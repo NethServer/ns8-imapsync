@@ -84,7 +84,8 @@
         "local_user": "Local user",
         "select_your_encryption": "Select encryption",
         "cron_enabled": "Run at a fixed interval (in minutes)",
-        "sieve_enabled": "Sieve filter"
+        "sieve_enabled": "Sieve filter",
+        "validation_failed": "The task could not be validated, check the settings and the module logs"
     },
     "settings": {
         "mail_server_fqdn": "Mail server",

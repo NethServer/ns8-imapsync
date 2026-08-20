@@ -18,19 +18,28 @@ localuser = data["localuser"]
 
 # The credentials are validated by the next step, once this one has already written
 # the task files. Snapshot them so a refused edit is rolled back to its previous
-# values instead of keeping the credentials that were just rejected. The .rollback
-# suffix keeps the copies out of the imapsync/*.env and cron/*.cron globs.
+# values instead of keeping the credentials that were just rejected.
 task_files = [
     "imapsync/" + localuser + '_' + task_id + ".env",
     "imapsync/" + localuser + '_' + task_id + ".pwd",
     "cron/" + localuser + '_' + task_id + ".cron",
 ]
+
+
+def snapshot_of(path):
+    """Snapshots all live under imapsync/. Never in cron/: that directory is bound to
+    /etc/cron.d and cronie runs every file it finds there whatever the extension, so a
+    copy left beside the real one would fire a second, concurrent sync."""
+    return "imapsync/" + os.path.basename(path) + ".rollback"
+
+
 for path in task_files:
+    snapshot = snapshot_of(path)
     if os.path.exists(path):
-        shutil.copy2(path, path + ".rollback")
-    elif os.path.exists(path + ".rollback"):
+        shutil.copy2(path, snapshot)
+    elif os.path.exists(snapshot):
         # leftover from a run that died before committing
-        os.remove(path + ".rollback")
+        os.remove(snapshot)
 # remote credentials
 remotehostname = data["remotehostname"]
 remoteport = data["remoteport"]

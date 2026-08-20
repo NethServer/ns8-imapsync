@@ -17,9 +17,6 @@ data = json.load(sys.stdin)
 task_id = data["task_id"]
 # Local user to sync on
 localuser= data["localuser"]
-# -t is required: without a TTY syncctl sends its output to the FDs of PID 1,
-# so the caller captures nothing and every branch below is skipped.
-result = subprocess.run(["podman","exec","-t","imapsync","syncctl", "validation",localuser+'_'+task_id], check=False, capture_output=True, text=True)
 task_files = [
     "imapsync/" + localuser + '_' + task_id + ".env",
     "imapsync/" + localuser + '_' + task_id + ".pwd",
@@ -27,10 +24,23 @@ task_files = [
 ]
 
 
+def snapshot_of(path):
+    """Snapshots all live under imapsync/. Never in cron/: that directory is bound to
+    /etc/cron.d and cronie runs every file it finds there whatever the extension."""
+    return "imapsync/" + os.path.basename(path) + ".rollback"
+
+
+resolved = False
+
+
 def rollback():
     """Undo what 20configure wrote: restore an edited task, drop a new one."""
+    global resolved
+    if resolved:
+        return
+    resolved = True
     for path in task_files:
-        snapshot = path + ".rollback"
+        snapshot = snapshot_of(path)
         if os.path.exists(snapshot):
             os.replace(snapshot, path)
         elif os.path.exists(path):
@@ -38,25 +48,50 @@ def rollback():
 
 
 def commit():
+    global resolved
+    if resolved:
+        return
+    resolved = True
     for path in task_files:
-        snapshot = path + ".rollback"
+        snapshot = snapshot_of(path)
         if os.path.exists(snapshot):
             os.remove(snapshot)
 
 
-# Checked in order, first match wins, as before.
+def refuse(exit_code, error):
+    rollback()
+    agent.set_status('validation-failed')
+    json.dump([{'field': 'createTask', 'parameter': 'createTask', 'value': error, 'error': error}],
+              fp=sys.stdout, default=str)
+    sys.exit(exit_code)
+
+
+# Checked in order, first match wins.
 validation_errors = [
     ('ERR_AUTHENTICATION_FAILURE_USER1', 2, 'bad_user_credentials'),
     ('SSL connect attempt failed', 4, 'SSL_encryption_error'),
     ('ERR_EXIT_TLS_FAILURE', 4, 'STARTTLS_not_allowed_use_IMAPS'),
     ('ERR_CONNECTION_FAILURE_HOST1', 3, 'Check_hostname_or_tcp_port'),
 ]
-for needle, exit_code, error in validation_errors:
-    if needle in result.stdout:
-        rollback()
-        agent.set_status('validation-failed')
-        json.dump([{'field': 'createTask', 'parameter': 'createTask', 'value': error, 'error': error}],
-                  fp=sys.stdout, default=str)
-        sys.exit(exit_code)
 
-commit()
+try:
+    # -t is required: without a TTY syncctl sends its output to the FDs of PID 1,
+    # so the caller captures nothing and no branch below can match.
+    result = subprocess.run(["podman", "exec", "-t", "imapsync", "syncctl", "validation",
+                             localuser + '_' + task_id],
+                            check=False, capture_output=True, text=True)
+    for needle, exit_code, error in validation_errors:
+        if needle in result.stdout:
+            refuse(exit_code, error)
+    if result.returncode != 0:
+        # syncctl runs under set -e, so a non-zero code means the login failed for a
+        # reason we have no specific message for: an empty password leaves no .pwd file,
+        # host2 can refuse, imapsync can time out. Refusing beats accepting a task that
+        # cannot run. The output goes to the journal so an admin can tell why.
+        print(result.stdout[-2000:], file=sys.stderr)
+        refuse(1, 'validation_failed')
+    commit()
+finally:
+    # A raised exception, or this step being killed, must not leave the refused
+    # credentials live. No-op once commit() or refuse() has resolved the task.
+    rollback()
