@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation     Coverage for the actions and helpers no other suite touches: the CSV
 ...               bulk import, the get-facts counters, the exclusion folder mode, the
-...               generated cron file, the bulk start/stop actions and the vmail master
+...               generated cron file, stopping a running sync and the vmail master
 ...               secret. None of them was exercised before.
 Library           SSHLibrary
 Resource          imapsync.resource

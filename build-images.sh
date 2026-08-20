@@ -24,9 +24,7 @@ buildah run "${container}" cp -vp /usr/bin/imapsync{,.orig}
 buildah run "${container}" patch -F0 -d /usr/bin -p1 < imapsync-sievedelivery2.patch
 buildah run "${container}" patch -F0 -d /usr/bin -p1 < imapsync-delete1older.patch
 buildah run "${container}" patch -F0 -d /usr/bin -p1 < imapsync-setflag1.patch
-# A hunk applied with fuzz can register an option in get_options_from_string or
-# get_options_cgi instead of get_options_cmd: the build stays green and the option
-# is silently ignored on the command line. Assert the CLI really accepts them.
+# A fuzzy hunk can register an option in the wrong sub: build green, option ignored.
 buildah run "${container}" /bin/sh <<'EOF'
 set -e
 perl -c /usr/bin/imapsync

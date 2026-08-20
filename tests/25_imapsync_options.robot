@@ -1,10 +1,9 @@
 *** Settings ***
 Documentation     Coverage for the three imapsync options that come from our local
-...               patches: --setflag1, --sievedelivery2 and --delete1older.
-...               20_imapsync.robot never exercises them, because every task it creates
-...               uses foldersynchronization=all, sieve_enabled=false and
-...               delete_remote_older=0. A patch silently failing to apply to a newer
-...               imapsync release would therefore leave the suite green.
+...               patches: --setflag1, --sievedelivery2 and --delete1older, which
+...               20_imapsync.robot never exercises since every task it creates uses
+...               foldersynchronization=all, sieve_enabled=false and
+...               delete_remote_older=0.
 Library           SSHLibrary
 Resource          imapsync.resource
 Suite Setup       Put File    ${CURDIR}/test-msa.sh    /tmp/test-msa.sh
@@ -40,8 +39,6 @@ Verify imapsync accepted --setflag1
     Verify imapsync accepts    --setflag1=Seen
 
 Verify --setflag1 flagged the remote messages as Seen
-    [Documentation]    The transferred messages must now carry \\Seen on host1. Without the
-    ...                setflag1 patch they would still be unseen.
     Wait until message count is    ${remoteuser}    unseen    ${remote_unseen_before}
 
 Verify the messages reached the local user
@@ -50,10 +47,7 @@ Verify the messages reached the local user
     Set Suite Variable    ${local_total_after}    ${expected}
 
 Verify a second run transfers nothing thanks to --search1=UNSEEN
-    [Documentation]    This is the whole point of the setflag1 patch: messages already
-    ...                transferred are Seen on host1, so --search1=UNSEEN skips them.
-    # syncctl stamps .status with the run start time, so make sure the second run cannot
-    # land on the same second as the first one.
+    # .status carries the run start time, so keep the two runs off the same second.
     Sleep    1s
     ${rc} =    Execute Command
     ...    api-cli run module/${imapsync_module_id}/start-task --data '{"localuser": "${localuser}","task_id": "${setflagtask}"}'
@@ -68,8 +62,7 @@ Verify a second run transfers nothing thanks to --search1=UNSEEN
 
 Run a task with retention so imapsync gets --delete1older
     [Documentation]    delete_remote with delete_remote_older>0 maps to --delete1older=N.
-    ...                The messages are fresh, so nothing is expected to be removed: what
-    ...                this checks is that imapsync accepts the patched option.
+    ...                The messages are fresh, so nothing is expected to be removed.
     Create sync task    ${oldertask}    all    false    true    5
     ${props} =    Wait for a completed sync    ${oldertask}
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
@@ -102,9 +95,8 @@ Verify imapsync accepted --sievedelivery2
     Verify imapsync accepts    --sievedelivery2
 
 Verify the sievedelivery2 branch really ran
-    [Documentation]    The patch prints this line just before issuing FILTER SIEVE DELIVERY,
-    ...                so finding it proves the patched branch executed, not merely that the
-    ...                option was accepted.
+    [Documentation]    The patch prints this line before issuing FILTER SIEVE DELIVERY, so
+    ...                finding it proves the patched branch ran, not just that it parsed.
     ${log} =    Read the task log    ${sievetask}
     Should Contain    ${log}    FILTER SIEVE DELIVERY UID
     ...    msg=the sievedelivery2 branch did not run

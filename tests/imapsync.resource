@@ -12,8 +12,7 @@ ${maildomain}       domain.test
 Count messages
     [Documentation]    Messages matching ${query} in the INBOX of ${user}
     [Arguments]    ${user}    ${query}
-    # No pipe: piping into wc would hide doveadm's own exit code, and a broken
-    # command would read as "no message".
+    # No pipe into wc: that would hide doveadm's exit code (67 on an unknown user).
     ${out}    ${rc} =    Execute Command
     ...    runagent -m ${MID} podman exec dovecot doveadm search -u ${user} mailbox INBOX ${query}
     ...    return_rc=True

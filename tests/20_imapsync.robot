@@ -157,10 +157,8 @@ Verify Public and Shared folders were NOT synced to u2
     Should Be True    ${success}    Public and Shared folders should NOT be synced
 
 Verify no permission errors in imapsync logs
-    [Documentation]    The imapsync container belongs to the imapsync module, not the mail
-    ...                one, and syncctl names the log <localuser>_<task_id>.log. Assert the
-    ...                log is really there before grepping it, otherwise a missing file
-    ...                reads as a pass.
+    [Documentation]    Assert the log exists before grepping it: a missing file reads as
+    ...                a pass otherwise.
     ${logfile} =    Set Variable    /etc/imapsync/u2_public_shared_test.log
     # The sync runs detached, so wait for the log rather than reading it once.
     FOR    ${i}    IN RANGE    30
