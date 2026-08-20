@@ -15,6 +15,7 @@ IMAPSYNC Bulk User Import Tool - Create multiple sync tasks from CSV
 """
 
 import csv
+import glob
 import string
 import random
 import sys
@@ -141,6 +142,32 @@ def parse_csv_row(row: dict, existing_ids: set) -> dict:
     return task_data
 
 
+def existing_syncs() -> set:
+    """The (local user, remote user, remote host) triples already configured.
+
+    A local user may legitimately sync from several remote accounts, so only the
+    whole triple identifies the same sync twice.
+    """
+    syncs = set()
+    for env_file in glob.iglob("imapsync/*.env"):
+        env = agent.read_envfile(env_file)
+        syncs.add(_sync_key(env.get('LOCALUSER', ''), env.get('REMOTEUSERNAME', ''),
+                            env.get('REMOTEHOSTNAME', '')))
+    return syncs
+
+
+def _sync_key(localuser: str, remoteuser: str, remotehost: str) -> tuple:
+    """Compared case insensitively. An IP and an FQDN of the same server still count as
+    two different syncs: resolving them would mean a DNS lookup per row.
+    """
+    return (localuser.lower(), remoteuser.lower(), remotehost.lower())
+
+
+def sync_key(task_data: dict) -> tuple:
+    return _sync_key(task_data['localuser'], task_data['remoteusername'],
+                     task_data['remotehostname'])
+
+
 def create_task(module_id: str, task_data: dict) -> bool:
     """Create a task via agent.tasks.run()"""
     local_user = task_data.get('localuser', 'unknown')
@@ -178,6 +205,9 @@ USAGE:
 OPTIONS:
     -h, --help             : Show this help message
     -c, --check            : Check CSV format without creating tasks
+    -f, --force            : Create a task even if that local user already syncs
+                             the same remote account (duplicates are skipped by
+                             default, so an import can safely be re-run)
 
 EXAMPLE:
     runagent -m imapsync1 import-csv-tasks < users.csv
@@ -232,6 +262,10 @@ def main():
     if check_only:
         args = [arg for arg in args if arg not in ['-c', '--check']]
     
+    force = '-f' in args or '--force' in args
+    if force:
+        args = [arg for arg in args if arg not in ['-f', '--force']]
+    
     # Validate no extra arguments
     if len(args) != 0:
         print("✗ Error: Unexpected arguments")
@@ -266,7 +300,22 @@ def main():
             print(f"\n✗ Validation failed: {validation_errors} row(s) with errors")
             sys.exit(1)
         
+        already = existing_syncs()
+        duplicates = 0
+        seen = set()
+        for idx, row in enumerate(rows, start=1):
+            try:
+                key = sync_key(parse_csv_row(row, set()))
+            except Exception:
+                continue
+            if key in already or key in seen:
+                print(f"  ⊘ Row {idx}: {key[0]} already syncs {key[1]}@{key[2]}")
+                duplicates += 1
+            seen.add(key)
         print(f"✓ All {len(rows)} rows validated successfully")
+        if duplicates:
+            print(f"⊘ {duplicates} row(s) would be skipped as already configured, "
+                  f"use --force to create them anyway")
         print(f"✓ Generated {len(existing_ids)} unique task IDs")
         print("\n✓ CSV file is valid. No tasks were created (check-only mode).")
         sys.exit(0)
@@ -277,11 +326,20 @@ def main():
     
     successful = 0
     failed = 0
+    skipped = 0
     existing_ids = set()
+    seen_syncs = set() if force else existing_syncs()
     
     for idx, row in enumerate(rows, start=1):
         try:
             task_data = parse_csv_row(row, existing_ids)
+            key = sync_key(task_data)
+            if key in seen_syncs:
+                print(f"⊘ Skipped row {idx}: {key[0]} already syncs {key[1]}@{key[2]}")
+                skipped += 1
+                print()
+                continue
+            seen_syncs.add(key)
             if create_task(module_id, task_data):
                 successful += 1
             else:
@@ -299,9 +357,14 @@ def main():
     
     # Summary
     print("=" * 70)
-    print(f"📊 Summary: {successful} successful, {failed} failed")
+    summary = f"📊 Summary: {successful} successful, {failed} failed"
+    if skipped:
+        summary += f", {skipped} skipped as already configured"
+    print(summary)
     print("=" * 70)
     
+    # A skipped duplicate is not an error: re-running an import after fixing a few
+    # rows must stay quiet about the ones already done.
     sys.exit(1 if failed > 0 else 0)
 
 
