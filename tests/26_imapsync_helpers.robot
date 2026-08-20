@@ -10,6 +10,9 @@ Suite Teardown    Delete every task
 
 *** Variables ***
 ${csvfile}          /tmp/imapsync-import.csv
+# A second remote account, so the two CSV rows are distinct syncs: rows differing only
+# by port would now be deduplicated.
+${remoteuser2}      u1
 # TEST-NET-1 (RFC 5737): reserved for documentation, so the connect always hangs
 ${blackhole}        192.0.2.1
 
@@ -27,6 +30,18 @@ Import the CSV
     ...    return_rc=True
     RETURN    ${out}    ${rc}
 
+Import the CSV with
+    [Arguments]    ${options}
+    ${out}    ${rc} =    Execute Command
+    ...    runagent -m ${imapsync_module_id} import-csv-tasks ${options} < ${csvfile}
+    ...    return_rc=True
+    RETURN    ${out}    ${rc}
+
+One row CSV
+    [Documentation]    Same sync triple throughout, so only the port and encryption vary.
+    [Arguments]    ${port}=143    ${security}=tls    ${password}=Nethesis,1234
+    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"${password}",${mail_host},${port},${security}\n
+
 Module state file
     [Documentation]    Reads a file under the module state directory, resolved from
     ...                AGENT_STATE_DIR instead of a hardcoded /home path.
@@ -43,10 +58,10 @@ Import two tasks from a CSV
     ...                columns and generates the task id itself.
     ${count} =    Task count
     Should Be Equal As Integers    ${count}    0    the suite expects no leftover task
-    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},143,tls\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},993,ssl\n
+    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},143,tls\n${localuser},${remoteuser2},"Nethesis,1234",${mail_host},993,ssl\n
     ${out}    ${rc} =    Import the CSV
     Should Be Equal As Integers    ${rc}    0    CSV import failed:\n${out}
-    Should Contain    ${out}    2 successful
+    Should Contain    ${out}    2 created
     ${count} =    Task count
     Should Be Equal As Integers    ${count}    2
 
@@ -66,9 +81,11 @@ Verify the CSV columns and the auto-filled defaults
     Should Be Equal    ${securities}    ${{ ['ssl', 'tls'] }}
     ${ports} =    Evaluate    sorted(int(p['remoteport']) for p in $result['user_properties'])
     Should Be Equal    ${ports}    ${{ [143, 993] }}
+    ${remotes} =    Evaluate    sorted(p['remoteusername'] for p in $result['user_properties'])
+    ${expected} =    Evaluate    sorted([$remoteuser, $remoteuser2])
+    Should Be Equal    ${remotes}    ${expected}
     FOR    ${props}    IN    @{result['user_properties']}
         Should Be Equal    ${props['localuser']}          ${localuser}
-        Should Be Equal    ${props['remoteusername']}     ${remoteuser}
         Should Be Equal    ${props['foldersynchronization']}    all
         Should Be Equal    ${props['cron']}               ${EMPTY}
         Should Not Be True    ${props['delete_local']}
@@ -170,3 +187,79 @@ Stopping an already stopped task is harmless
     ...    return_rc=True    return_stdout=False
     Should Be Equal As Integers    ${rc}    0
     [Teardown]    Delete sync task    stopt1
+
+Skip a row that is already configured
+    [Documentation]    Re-running an import must not double every sync, nor look like a
+    ...                failure.
+    Delete every task
+    One row CSV
+    ${out}    ${rc} =    Import the CSV
+    Should Be Equal As Integers    ${rc}    0    first import failed:\n${out}
+    ${props} =    Run task    module/${imapsync_module_id}/list-tasks    {}
+    ${id} =    Set Variable    ${props['user_properties'][0]['task_id']}
+    ${out}    ${rc} =    Import the CSV
+    Should Be Equal As Integers    ${rc}    0    a skipped duplicate must not be an error
+    Should Contain    ${out}    Skipped
+    ${count} =    Task count
+    Should Be Equal As Integers    ${count}    1    the second import created a duplicate
+    Set Suite Variable    ${dedup_id}    ${id}
+
+Match an already configured row whatever the case
+    [Documentation]    dovecot authenticates with auth_username_format %Ln.
+    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser.upper()},${remoteuser.upper()},"Nethesis,1234",${mail_host},143,tls\n
+    ${out}    ${rc} =    Import the CSV
+    Should Contain    ${out}    Skipped
+    ${count} =    Task count
+    Should Be Equal As Integers    ${count}    1
+
+Update an existing row in place
+    [Documentation]    A fresh id would leave two crons racing on the same mailbox.
+    One row CSV    port=993    security=ssl
+    ${out}    ${rc} =    Import the CSV with    --update
+    Should Be Equal As Integers    ${rc}    0    update failed:\n${out}
+    Should Contain    ${out}    Updating
+    ${count} =    Task count
+    Should Be Equal As Integers    ${count}    1    the update created a duplicate
+    ${props} =    Task properties    ${dedup_id}
+    Should Be Equal As Integers    ${props['remoteport']}    993
+    Should Be Equal    ${props['security']}    ssl
+
+Update a recased row without splitting the task
+    [Documentation]    State files are named after the account as written, so an update
+    ...                must reuse the stored spelling or a second set appears beside it.
+    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser.upper()},${remoteuser.upper()},"Nethesis,1234",${mail_host},993,ssl\n
+    ${out}    ${rc} =    Import the CSV with    --update
+    Should Be Equal As Integers    ${rc}    0    update failed:\n${out}
+    ${count} =    Task count
+    Should Be Equal As Integers    ${count}    1    the recased row split the task in two
+    ${props} =    Task properties    ${dedup_id}
+    Should Be Equal    ${props['localuser']}    ${localuser}
+    ...                msg=the stored spelling was not reused
+
+Keep the previous settings when an update is refused
+    [Documentation]    create-task rolls back on refusal, so a bad password in the file
+    ...                cannot break a working task.
+    One row CSV    port=993    security=ssl    password=WrongPassword,000
+    ${out}    ${rc} =    Import the CSV with    --update
+    Should Not Be Equal As Integers    ${rc}    0    a refused update must be reported
+    ${count} =    Task count
+    Should Be Equal As Integers    ${count}    1
+    ${secret} =    Module state file    imapsync/${localuser}_${dedup_id}.pwd
+    Should Be Equal    ${secret.strip()}    Nethesis,1234
+    ...    msg=the refused password overwrote the working one
+    [Teardown]    Delete every task
+
+Skip a row repeated inside one file
+    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},143,tls\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},143,tls\n
+    ${out}    ${rc} =    Import the CSV
+    Should Be Equal As Integers    ${rc}    0
+    Should Contain    ${out}    appears twice in this file
+    ${count} =    Task count
+    Should Be Equal As Integers    ${count}    1
+
+Report duplicates in check mode
+    ${out}    ${rc} =    Import the CSV with    --check
+    Should Be Equal As Integers    ${rc}    0
+    Should Contain    ${out}    already syncs
+    Should Contain    ${out}    --update
+    [Teardown]    Delete every task

@@ -373,6 +373,7 @@ This performs comprehensive validation without making API calls:
 - Verifies all mandatory fields have values (except `security` which can be empty)
 - Validates port numbers are numeric
 - Reports specific errors for each invalid row
+- Reports the rows that would be skipped as already configured
 
 Example validation output:
 ```bash
@@ -399,7 +400,24 @@ runagent -m imapsync1 import-csv-tasks -h
 ### Options
 
 - `-c, --check` – Check-only mode: validates CSV format without creating tasks
+- `-u, --update` – Apply the file to tasks that already exist instead of skipping them
 - `-h, --help` – Display comprehensive help message
+
+### Rows already configured
+
+A row is skipped when that local user already synchronizes the same remote account on
+the same server. The comparison ignores case, and catches rows repeated inside a single
+file. This makes an import safe to re-run: fix a couple of lines, run it again, and only
+the missing tasks are created. A skipped row is not an error, so the exit code stays `0`.
+
+The port and the security protocol are not part of the comparison: the same account
+reached on `143` or `993` is the same mailbox. An IP address and a hostname of the same
+server do count as two different accounts.
+
+Use `-u, --update` to apply the file to the existing tasks instead, which is how
+credentials are changed in bulk. The task keeps its ID, its log and its status, so no
+duplicate is created. If the new credentials are refused, the task keeps its previous
+settings.
 
 ### Features
 
@@ -443,7 +461,7 @@ runagent -m imapsync1 import-csv-tasks -h
 - **Progress tracking:**
   - Shows real-time progress for each user creation
   - Displays success/failure status per task
-  - Provides final summary with success/failure counts
+  - Final summary counting tasks created, failed, updated and skipped
 
 - **API integration:**
   - Calls `action/create-task` for each user
@@ -457,13 +475,14 @@ Create 3 synchronization tasks from a CSV file:
 ```bash
 runagent -m imapsync1 import-csv-tasks < users.csv
 
-Validating CSV file: users.csv
+Reading CSV from standard input...
 
 📋 CSV Column Validation:
-   Delimiter detected: ';'
-   Found 6 column(s): localusername, remotepassword, remotehostname, remoteport, remoteusername, security
+   Delimiter: ',' (comma-separated)
+   Found 6 column(s): localusername, remotehostname, remotepassword, remoteport, remoteusername, security
+   Column order: does not matter (mapped by header name)
 ✓ All 6 required columns present
-✓ Found 3 data row(s)
+✓ Found 3 data row(s) (empty lines skipped)
 
 📦 Starting task creation with module: imapsync1
    Processing 3 user(s)...
@@ -478,7 +497,7 @@ Creating task for dolores.slughorn3 (ID: g7h8i9)...
 ✓ Success: dolores.slughorn3
 
 ======================================================================
-📊 Summary: 3 successful, 0 failed
+📊 Summary: 3 created, 0 failed
 ======================================================================
 ```
 
@@ -499,6 +518,12 @@ Creating task for dolores.slughorn3 (ID: g7h8i9)...
 **"Invalid port number"**
 
 - Ensure `remoteport` column contains only numeric values (e.g., `993`, `143`)
+
+**Rows were skipped instead of created**
+
+That local user already synchronizes the same remote account on that server. Run with
+`-c` to list what would be skipped, or with `-u` to apply the file to the existing
+tasks.
 
 **Remove all tasks after a bad import**
 
