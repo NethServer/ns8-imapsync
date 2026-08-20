@@ -61,7 +61,7 @@ Import two tasks from a CSV
     Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},143,tls\n${localuser},${remoteuser2},"Nethesis,1234",${mail_host},993,ssl\n
     ${out}    ${rc} =    Import the CSV
     Should Be Equal As Integers    ${rc}    0    CSV import failed:\n${out}
-    Should Contain    ${out}    2 successful
+    Should Contain    ${out}    2 created
     ${count} =    Task count
     Should Be Equal As Integers    ${count}    2
 
@@ -223,6 +223,18 @@ Update an existing row in place
     ${props} =    Task properties    ${dedup_id}
     Should Be Equal As Integers    ${props['remoteport']}    993
     Should Be Equal    ${props['security']}    ssl
+
+Update a recased row without splitting the task
+    [Documentation]    State files are named after the account as written, so an update
+    ...                must reuse the stored spelling or a second set appears beside it.
+    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser.upper()},${remoteuser.upper()},"Nethesis,1234",${mail_host},993,ssl\n
+    ${out}    ${rc} =    Import the CSV with    --update
+    Should Be Equal As Integers    ${rc}    0    update failed:\n${out}
+    ${count} =    Task count
+    Should Be Equal As Integers    ${count}    1    the recased row split the task in two
+    ${props} =    Task properties    ${dedup_id}
+    Should Be Equal    ${props['localuser']}    ${localuser}
+    ...                msg=the stored spelling was not reused
 
 Keep the previous settings when an update is refused
     [Documentation]    create-task rolls back on refusal, so a bad password in the file
