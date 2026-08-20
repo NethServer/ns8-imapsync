@@ -17,7 +17,9 @@ data = json.load(sys.stdin)
 task_id = data["task_id"]
 # Local user to sync on
 localuser= data["localuser"]
-result = subprocess.run(["podman","exec","imapsync","syncctl", "validation",localuser+'_'+task_id], check=False, capture_output=True, text=True)
+# -t is required: without a TTY syncctl sends its output to the FDs of PID 1,
+# so the caller captures nothing and every branch below is skipped.
+result = subprocess.run(["podman","exec","-t","imapsync","syncctl", "validation",localuser+'_'+task_id], check=False, capture_output=True, text=True)
 if 'ERR_AUTHENTICATION_FAILURE_USER1' in result.stdout:
     agent.set_status('validation-failed')
     json.dump([{'field':'createTask','parameter':'createTask','value':'bad_user_credentials','error':'bad_user_credentials'}],fp=sys.stdout, default=str)
