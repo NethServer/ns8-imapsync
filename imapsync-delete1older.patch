@@ -19,7 +19,7 @@ diff --git a/imapsync b/imapsync
 +                my $cutoff_date = $sync->{ imap1 }->Rfc2060_date($cutoff_ts);
 +                my @h1_msgs_delete_older = select_msgs( $sync, $sync->{ imap1 }, undef, "BEFORE " . $cutoff_date, $sync->{abletosearch1}, $h1_fold ) ;
 +                if (@h1_msgs_delete_older) {
-+                        myprint( "Host1: Deleting $#h1_msgs_delete_older messages in $h1_fold before $cutoff_date with EXPUNGE $sync->{ dry_message }\n"  ) ;
++                        myprint( 'Host1: Deleting ', scalar @h1_msgs_delete_older, " messages in $h1_fold before $cutoff_date with EXPUNGE $sync->{ dry_message }\n"  ) ;
 +                        delete_messages_on_any( $sync, $sync->{ acc1 }, $sync->{ imap1 }, "Host1: $h1_fold", 1, $split1, @h1_msgs_delete_older ) ;
 +                }
 +        }
