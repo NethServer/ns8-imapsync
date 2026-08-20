@@ -25,8 +25,7 @@ task_files = [
 
 
 def snapshot_of(path):
-    """Snapshots all live under imapsync/. Never in cron/: that directory is bound to
-    /etc/cron.d and cronie runs every file it finds there whatever the extension."""
+    """Never in cron/: it is bound to /etc/cron.d and cronie runs any extension."""
     return "imapsync/" + os.path.basename(path) + ".rollback"
 
 
@@ -66,7 +65,6 @@ def refuse(exit_code, error):
     sys.exit(exit_code)
 
 
-# Checked in order, first match wins.
 validation_errors = [
     ('ERR_AUTHENTICATION_FAILURE_USER1', 2, 'bad_user_credentials'),
     ('SSL connect attempt failed', 4, 'SSL_encryption_error'),
@@ -75,8 +73,7 @@ validation_errors = [
 ]
 
 try:
-    # -t is required: without a TTY syncctl sends its output to the FDs of PID 1,
-    # so the caller captures nothing and no branch below can match.
+    # -t is required: without a TTY syncctl writes to PID 1's FDs, not to us.
     result = subprocess.run(["podman", "exec", "-t", "imapsync", "syncctl", "validation",
                              localuser + '_' + task_id],
                             check=False, capture_output=True, text=True)
@@ -84,14 +81,11 @@ try:
         if needle in result.stdout:
             refuse(exit_code, error)
     if result.returncode != 0:
-        # syncctl runs under set -e, so a non-zero code means the login failed for a
-        # reason we have no specific message for: an empty password leaves no .pwd file,
-        # host2 can refuse, imapsync can time out. Refusing beats accepting a task that
-        # cannot run. The output goes to the journal so an admin can tell why.
+        # syncctl runs under set -e: a non-zero code is a failure we have no message
+        # for, such as an empty password leaving no .pwd file, or a timeout.
         print(result.stdout[-2000:], file=sys.stderr)
         refuse(1, 'validation_failed')
     commit()
 finally:
-    # A raised exception, or this step being killed, must not leave the refused
-    # credentials live. No-op once commit() or refuse() has resolved the task.
+    # An exception must not leave the refused credentials live.
     rollback()

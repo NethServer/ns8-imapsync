@@ -154,9 +154,8 @@ def create_task(module_id: str, task_data: dict) -> bool:
             data=task_data
         )
         if create_retval['exit_code'] != 0:
-            # Not agent.assert_exp here: it calls sys.exit(2), and SystemExit derives
-            # from BaseException so the except below never sees it. One refused row
-            # would abort the whole import and silently skip the remaining ones.
+            # Not assert_exp: it exits, and SystemExit escapes the except below,
+            # which would abort the whole import on one refused row.
             print(f"✗ Error for {local_user}: create-task exited {create_retval['exit_code']}")
             return False
         print(f"✓ Success: {local_user}")

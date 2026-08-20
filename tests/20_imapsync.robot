@@ -207,14 +207,12 @@ Test get-log action truncates log larger than 100KB
 
 Test list-tasks status fields populated after task creation
     [Documentation]    create-task triggers an immediate sync via run-imapsync restart, so status fields must be populated.
-    ...                The host must be the mail server: 127.0.0.1 resolves to the imapsync
-    ...                container itself, and create-task now rejects it.
+    ...                127.0.0.1 would be the imapsync container itself, not the mail server.
     ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
     ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/create-task --data '{"cron": "5m","delete_local": false,"delete_remote": false,"delete_remote_older": 0,"exclude": "","foldersynchronization": "all","localuser": "u2","remotehostname": "${mail_server_ip}","remotepassword": "Nethesis,1234","remoteport": 143,"remoteusername": "u3","security": "tls","sieve_enabled": false,"task_id": "status1"}'
     ...    return_rc=True    return_stdout=False
     Should Be Equal As Integers    ${rc}    0
-    # 50start-service launches the sync with podman exec -d, so the status file only
-    # appears once imapsync has exited: poll instead of reading straight away.
+    # The sync runs detached, so the status file only appears once imapsync has exited.
     FOR    ${i}    IN RANGE    30
         ${result} =    Run task    module/${imapsync_module_id}/list-tasks    {}
         ${props} =    Set Variable    ${result['user_properties'][0]}
