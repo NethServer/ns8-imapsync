@@ -153,7 +153,11 @@ def create_task(module_id: str, task_data: dict) -> bool:
             action='create-task',
             data=task_data
         )
-        agent.assert_exp(create_retval['exit_code'] == 0, "The create-task subtask failed!")
+        if create_retval['exit_code'] != 0:
+            # Not assert_exp: it exits, and SystemExit escapes the except below,
+            # which would abort the whole import on one refused row.
+            print(f"✗ Error for {local_user}: create-task exited {create_retval['exit_code']}")
+            return False
         print(f"✓ Success: {local_user}")
         return True
     except Exception as e:
@@ -234,7 +238,7 @@ def main():
         print("Usage: runagent -m imapsync1 import-csv-tasks [options]")
         sys.exit(1)
     
-    module_id = 'imapsync1'
+    module_id = os.environ.get('MODULE_ID', os.environ.get('AGENT_ID', 'unknown'))
     
     # Validate and load CSV from stdin
     print("Reading CSV from standard input...")

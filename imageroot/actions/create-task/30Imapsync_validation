@@ -17,20 +17,75 @@ data = json.load(sys.stdin)
 task_id = data["task_id"]
 # Local user to sync on
 localuser= data["localuser"]
-result = subprocess.run(["podman","exec","imapsync","syncctl", "validation",localuser+'_'+task_id], check=False, capture_output=True, text=True)
-if 'ERR_AUTHENTICATION_FAILURE_USER1' in result.stdout:
+task_files = [
+    "imapsync/" + localuser + '_' + task_id + ".env",
+    "imapsync/" + localuser + '_' + task_id + ".pwd",
+    "cron/" + localuser + '_' + task_id + ".cron",
+]
+
+
+def snapshot_of(path):
+    """Never in cron/: it is bound to /etc/cron.d and cronie runs any extension."""
+    return "imapsync/" + os.path.basename(path) + ".rollback"
+
+
+resolved = False
+
+
+def rollback():
+    """Undo what 20configure wrote: restore an edited task, drop a new one."""
+    global resolved
+    if resolved:
+        return
+    resolved = True
+    for path in task_files:
+        snapshot = snapshot_of(path)
+        if os.path.exists(snapshot):
+            os.replace(snapshot, path)
+        elif os.path.exists(path):
+            os.remove(path)
+
+
+def commit():
+    global resolved
+    if resolved:
+        return
+    resolved = True
+    for path in task_files:
+        snapshot = snapshot_of(path)
+        if os.path.exists(snapshot):
+            os.remove(snapshot)
+
+
+def refuse(exit_code, error):
+    rollback()
     agent.set_status('validation-failed')
-    json.dump([{'field':'createTask','parameter':'createTask','value':'bad_user_credentials','error':'bad_user_credentials'}],fp=sys.stdout, default=str)
-    sys.exit(2)
-elif 'SSL connect attempt failed' in result.stdout:
-    agent.set_status('validation-failed')
-    json.dump([{'field':'createTask','parameter':'createTask','value':'SSL_encryption_error','error':'SSL_encryption_error'}],fp=sys.stdout, default=str)
-    sys.exit(4)
-elif 'ERR_EXIT_TLS_FAILURE' in result.stdout:
-    agent.set_status('validation-failed')
-    json.dump([{'field':'createTask','parameter':'createTask','value':'STARTTLS_not_allowed_use_IMAPS','error':'STARTTLS_not_allowed_use_IMAPS'}],fp=sys.stdout, default=str)
-    sys.exit(4)
-elif 'ERR_CONNECTION_FAILURE_HOST1' in result.stdout:
-    agent.set_status('validation-failed')
-    json.dump([{'field':'createTask','parameter':'createTask','value':'Check_hostname_or_tcp_port','error':'Check_hostname_or_tcp_port'}],fp=sys.stdout, default=str)
-    sys.exit(3)
+    json.dump([{'field': 'createTask', 'parameter': 'createTask', 'value': error, 'error': error}],
+              fp=sys.stdout, default=str)
+    sys.exit(exit_code)
+
+
+validation_errors = [
+    ('ERR_AUTHENTICATION_FAILURE_USER1', 2, 'bad_user_credentials'),
+    ('SSL connect attempt failed', 4, 'SSL_encryption_error'),
+    ('ERR_EXIT_TLS_FAILURE', 4, 'STARTTLS_not_allowed_use_IMAPS'),
+    ('ERR_CONNECTION_FAILURE_HOST1', 3, 'Check_hostname_or_tcp_port'),
+]
+
+try:
+    # -t is required: without a TTY syncctl writes to PID 1's FDs, not to us.
+    result = subprocess.run(["podman", "exec", "-t", "imapsync", "syncctl", "validation",
+                             localuser + '_' + task_id],
+                            check=False, capture_output=True, text=True)
+    for needle, exit_code, error in validation_errors:
+        if needle in result.stdout:
+            refuse(exit_code, error)
+    if result.returncode != 0:
+        # syncctl runs under set -e: a non-zero code is a failure we have no message
+        # for, such as an empty password leaving no .pwd file, or a timeout.
+        print(result.stdout[-2000:], file=sys.stderr)
+        refuse(1, 'validation_failed')
+    commit()
+finally:
+    # An exception must not leave the refused credentials live.
+    rollback()
