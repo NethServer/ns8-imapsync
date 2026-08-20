@@ -6,6 +6,7 @@
 #
 
 import os
+import shutil
 import sys
 import json
 
@@ -14,6 +15,27 @@ data = json.load(sys.stdin)
 task_id = data["task_id"]
 # Local user to sync on
 localuser = data["localuser"]
+
+# The next step validates the credentials, after this one has written the files.
+task_files = [
+    "imapsync/" + localuser + '_' + task_id + ".env",
+    "imapsync/" + localuser + '_' + task_id + ".pwd",
+    "cron/" + localuser + '_' + task_id + ".cron",
+]
+
+
+def snapshot_of(path):
+    """Never in cron/: it is bound to /etc/cron.d and cronie runs any extension."""
+    return "imapsync/" + os.path.basename(path) + ".rollback"
+
+
+for path in task_files:
+    snapshot = snapshot_of(path)
+    if os.path.exists(path):
+        shutil.copy2(path, snapshot)
+    elif os.path.exists(snapshot):
+        # leftover from a run that died before committing
+        os.remove(snapshot)
 # remote credentials
 remotehostname = data["remotehostname"]
 remoteport = data["remoteport"]

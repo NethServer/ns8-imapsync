@@ -129,7 +129,8 @@
         "every_minutes": "Every {num} minutes",
         "configure_imapsync": "Go to the settings",
         "STARTTLS_not_allowed_use_IMAPS": "STARTTLS is not allowed by the provider",
-        "unchanged_password_placeholder": "Unchanged"
+        "unchanged_password_placeholder": "Unchanged",
+        "validation_failed": "The task could not be validated, check the settings and the module logs"
     },
     "about": {
         "title": "About"
