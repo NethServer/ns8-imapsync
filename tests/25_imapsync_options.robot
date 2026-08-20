@@ -12,6 +12,9 @@ Suite Setup       Put File    ${CURDIR}/test-msa.sh    /tmp/test-msa.sh
 # get-log validates task_id against ^[a-z0-9]{6}$
 ${setflagtask}      inbox1
 ${sievetask}        sieve1
+${sievebox}         SieveTest
+${sievemarker}      ROBOTSIEVE
+${sievescript}      robotsieve
 ${oldertask}        older1
 
 *** Test Cases ***
@@ -30,7 +33,7 @@ Deliver three unseen messages to the remote user
 Run an inbox-mode task so imapsync gets --setflag1
     [Documentation]    foldersynchronization=inbox makes syncctl add
     ...                --search1=UNSEEN --setflag1=Seen --noresyncflags
-    Create sync task    ${setflagtask}    inbox    false    false    0
+    Create sync task    ${setflagtask}    folders=inbox
     ${props} =    Wait for a completed sync    ${setflagtask}
     Set Suite Variable    ${setflag_first_sync}    ${props['last_sync_timestamp']}
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
@@ -63,7 +66,7 @@ Verify a second run transfers nothing thanks to --search1=UNSEEN
 Run a task with retention so imapsync gets --delete1older
     [Documentation]    delete_remote with delete_remote_older>0 maps to --delete1older=N.
     ...                The messages are fresh, so nothing is expected to be removed.
-    Create sync task    ${oldertask}    all    false    true    5
+    Create sync task    ${oldertask}    delete_remote=true    older=5
     ${props} =    Wait for a completed sync    ${oldertask}
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
 
@@ -86,7 +89,7 @@ Deliver two more unseen messages before the sieve task
 Run an inbox-mode task with sieve so imapsync gets --sievedelivery2
     [Documentation]    sieve_enabled alone is not enough: syncctl only honours it inside the
     ...                FOLDER_INBOX branch, hence foldersynchronization=inbox.
-    Create sync task    ${sievetask}    inbox    true    false    0
+    Create sync task    ${sievetask}    folders=inbox    sieve=true
     ${props} =    Wait for a completed sync    ${sievetask}
     Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
     ...    msg=the sieve run failed; check that dovecot advertises the FILTER=SIEVE capability
@@ -105,6 +108,38 @@ Verify list-tasks reports sieve enabled
     ${props} =    Task properties    ${sievetask}
     Should Be True    ${props['sieve_enabled']}
     [Teardown]    Delete sync task    ${sievetask}
+
+Install a sieve script that files on a subject marker
+    [Documentation]    :create spares the test from making the mailbox beforehand.
+    # No indentation in the script: Robot splits arguments on two consecutive spaces.
+    Install an active sieve script for    ${localuser}    ${sievescript}
+    ...    require ["fileinto", "mailbox"];\nif header :contains "subject" "${sievemarker}" {\nfileinto :create "${sievebox}";\n}\n
+
+Deliver two marked messages to the remote user
+    ${unseen} =    Count messages    ${remoteuser}    unseen
+    ${local} =    Count messages    ${localuser}    all
+    Set Suite Variable    ${inbox_before}    ${local}
+    Deliver messages to    ${remoteuser}    2    ${sievemarker}
+    ${target} =    Evaluate    ${unseen} + 2
+    Wait until message count is    ${remoteuser}    unseen    ${target}
+
+Run a sieve task over the marked messages
+    [Documentation]    syncctl only honours SIEVE_ENABLED inside the FOLDER_INBOX branch,
+    ...                so inbox mode is what makes --sievedelivery2 reach imapsync.
+    Create sync task    sievex    folders=inbox    sieve=true
+    ${props} =    Wait for a completed sync    sievex
+    Should Be Equal As Integers    ${props['last_sync_exit_code']}    0
+
+Verify the sieve script filed the messages out of the INBOX
+    [Documentation]    FILTER SIEVE DELIVERY files a copy and flags the original deleted,
+    ...                which the expunge that follows removes. Two messages also exercise
+    ...                the UID range the patch builds.
+    Wait until message count is    ${localuser}    all    2    ${sievebox}
+    ${inbox} =    Count messages    ${localuser}    all
+    Should Be Equal As Integers    ${inbox}    ${inbox_before}
+    ...    msg=the messages stayed in the INBOX instead of being filed by the script
+    [Teardown]    Run Keywords    Delete sync task    sievex
+    ...           AND    Remove the sieve script of    ${localuser}    ${sievescript}
 
 Verify no task is left behind
     ${result} =    Run task    module/${imapsync_module_id}/list-tasks    {}
