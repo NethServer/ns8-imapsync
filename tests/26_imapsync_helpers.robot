@@ -95,6 +95,20 @@ Verify the CSV columns and the auto-filled defaults
     END
     [Teardown]    Delete every task
 
+Report why a row was refused
+    [Documentation]    The reason lives in the structured output of create-task; without
+    ...                it the operator only sees an exit code.
+    Delete every task
+    Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport,security\n${localuser},${remoteuser},"WrongPassword,000",${mail_host},143,tls\n
+    ${out}    ${rc} =    Import the CSV
+    Should Not Be Equal As Integers    ${rc}    0
+    Should Contain    ${out}    refused the user or password
+    ...    msg=the refusal reason was not reported, only an exit code
+    Should Contain    ${out}    ${remoteuser}@${mail_host}:143
+    ...    msg=the refused row did not name the account it tried
+    ${count} =    Task count
+    Should Be Equal As Integers    ${count}    0
+
 Reject a CSV missing a required column
     Write CSV    localusername,remoteusername,remotepassword,remotehostname,remoteport\n${localuser},${remoteuser},"Nethesis,1234",${mail_host},143\n
     ${out}    ${rc} =    Import the CSV

@@ -16,6 +16,7 @@ IMAPSYNC Bulk User Import Tool - Create multiple sync tasks from CSV
 
 import csv
 import glob
+import json
 import string
 import random
 import sys
@@ -171,6 +172,30 @@ def sync_key(task_data: dict) -> tuple:
                      task_data['remotehostname'])
 
 
+# The UI translates these keys; the terminal is not translated, so keep a sentence here.
+VALIDATION_REASONS = {
+    'bad_user_credentials': 'the remote server refused the user or password',
+    'Check_hostname_or_tcp_port': 'the remote host or TCP port could not be reached',
+    'SSL_encryption_error': 'the encryption does not match what the remote server expects',
+    'STARTTLS_not_allowed_use_IMAPS': 'the remote server refuses STARTTLS, use IMAPS instead',
+    'validation_failed': 'the remote login failed, see the module logs for the imapsync output',
+}
+
+
+def validation_reason(retval: dict) -> str:
+    """create-task reports which check refused the row in its structured output."""
+    output = retval.get('output')
+    if isinstance(output, str):
+        try:
+            output = json.loads(output)
+        except ValueError:
+            return ''
+    if isinstance(output, list) and output and isinstance(output[0], dict):
+        key = output[0].get('error', '')
+        return VALIDATION_REASONS.get(key, key)
+    return ''
+
+
 def create_task(module_id: str, task_data: dict, verb: str = 'Creating') -> bool:
     """Create a task via agent.tasks.run(). Reusing an existing task id updates it."""
     local_user = task_data.get('localuser', 'unknown')
@@ -186,7 +211,12 @@ def create_task(module_id: str, task_data: dict, verb: str = 'Creating') -> bool
         if create_retval['exit_code'] != 0:
             # Not assert_exp: it exits, and SystemExit escapes the except below,
             # which would abort the whole import on one refused row.
-            print(f"✗ Error for {local_user}: create-task exited {create_retval['exit_code']}")
+            reason = validation_reason(create_retval)
+            if not reason:
+                reason = f"create-task exited {create_retval['exit_code']}"
+            print(f"✗ Error for {local_user}: {reason}")
+            print(f"  {task_data['remoteusername']}@{task_data['remotehostname']}:"
+                  f"{task_data['remoteport']} {task_data['security'] or 'no encryption'}")
             return False
         print(f"✓ Success: {local_user}")
         return True
