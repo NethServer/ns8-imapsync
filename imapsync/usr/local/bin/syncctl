@@ -50,20 +50,24 @@ print_log_excerpt() {
 get_file_age_in_days() {
     local filename
     filename="/etc/imapsync/${task_id}.timestamp"
-    prev_foldersync="$(cat ${filename} || :)"
 
     local maxage
-    if [[ ! -f "$filename" ]] || [[ "${FOLDERSYNCHRONIZATION}" != "${prev_foldersync}" ]]; then
+    # Read previous value only when the file exists to avoid $(cat || :) failing
+    # silently in ash with set -e when .timestamp was removed by a prior stop.
+    if [ ! -f "$filename" ]; then
         maxage=""
     else
-        # Get last access time in Unix timestamp
-        local last_access
-        last_access=$(stat -c %Y "$filename")
-        # Get current Unix timestamp
-        local today
-        today=$(date +%s)
-        # Calculate days difference and round up to next integer
-        maxage=$(( (today - last_access + 86399) / 86400 ))
+        local prev_foldersync
+        prev_foldersync="$(cat "$filename")"
+        if [ "${FOLDERSYNCHRONIZATION}" != "${prev_foldersync}" ]; then
+            maxage=""
+        else
+            local last_access
+            last_access=$(stat -c %Y "$filename")
+            local today
+            today=$(date +%s)
+            maxage=$(( (today - last_access + 86399) / 86400 ))
+        fi
     fi
     echo $maxage
 }
@@ -90,12 +94,12 @@ if [[ "${action}" == "start" ]]; then
     flock -x -n "/etc/imapsync/${task_id}.lock" \
         /usr/bin/imapsync --pidfile "/etc/imapsync/${task_id}.pid" --nolog \
         --noauthmd5 --noreleasecheck --allowsizemismatch \
-        --skipsize --nofoldersizes "${maxage:+--maxage=${maxage}}" "${DELETE_LOCAL}" "${DELETEFOLDERS}" "${DELETE_REMOTE}" "${EXPUNGE_REMOTE}" \
+        --skipsize --nofoldersizes ${maxage:+--maxage=${maxage}} ${DELETE_LOCAL:+"${DELETE_LOCAL}"} ${DELETEFOLDERS:+"${DELETEFOLDERS}"} ${DELETE_REMOTE:+"${DELETE_REMOTE}"} ${EXPUNGE_REMOTE:+"${EXPUNGE_REMOTE}"} \
         --fastio1 --fastio2 --buffersize 8192000 \
         --host1 "${REMOTEHOSTNAME}"  --user1 "${REMOTEUSERNAME}"  \
-        --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" "${SECURITY}"  "$gmail" \
+        --passfile1 "/etc/imapsync/${task_id}.pwd" --port1 "${REMOTEPORT}" ${SECURITY:+"${SECURITY}"}  "$gmail" \
         --host2 "${MAIL_HOST}"  --user2 "${LOCALUSER}*vmail" \
-        --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd \
+        --port2 143 --tls2 --passfile2 /etc/imapsync/vmail.pwd --addheader --automap \
         ${FOLDER_INBOX} \
         ${sieve_enabled:+--sievedelivery2} \
         ${sync_unseen:+--search1=UNSEEN --setflag1=Seen --noresyncflags} \
