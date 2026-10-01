@@ -2,9 +2,19 @@
 Library    SSHLibrary
 Resource    api.resource
 
+*** Variables ***
+${SCENARIO}    install
+
+*** Keywords ***
+u2 has ${count} messages
+    ${out} =    Execute Command    runagent -m ${MID} podman exec dovecot ls u2/Maildir/cur | wc -l
+    Should Be Equal As Integers    ${out}    ${count}
+
 *** Test Cases ***
 Check if imapsync is installed correctly
-    ${output}  ${rc} =    Execute Command    add-module ${IMAGE_URL} 1
+    # The update scenario starts from the NS8 stable release, then upgrades it below
+    ${image} =    Set Variable If    '${SCENARIO}' == 'update'    imapsync    ${IMAGE_URL}
+    ${output}  ${rc} =    Execute Command    add-module ${image} 1
     ...    return_rc=True
     Should Be Equal As Integers    ${rc}  0
     &{output} =    Evaluate    ${output}
@@ -127,6 +137,45 @@ Test get-log action returns log content after sync
     ${result} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "28ofi1", "localuser": "u2"}
     Should Not Be Empty    ${result['log_content']}
     Should Be Equal    ${result['truncated']}    ${False}
+
+Update imapsync to the image under test
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${result} =    Run task    module/${imapsync_module_id}/list-tasks    {}
+    Set Suite Variable    ${task_before}    ${result['user_properties'][0]}
+    ${rc} =    Execute Command
+    ...    api-cli run update-module --data '{"force":true,"module_url":"${IMAGE_URL}","instances":["${imapsync_module_id}"]}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+
+Check the configuration survives the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${ocfg} =   Run task    module/${imapsync_module_id}/get-configuration    {}
+    ${mail_server_uuid}    ${mail_server_ip}=    Evaluate    "${mail_modules_value}".split(",")
+    Should Be Equal    ${ocfg['mail_host']}     ${mail_server_ip}
+    Should Be Equal    ${ocfg['mail_server']}   ${mail_server_uuid}
+
+Check the task and its history survive the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    ${result} =    Run task    module/${imapsync_module_id}/list-tasks    {}
+    ${props} =    Set Variable    ${result['user_properties'][0]}
+    FOR    ${key}    IN    task_id    cron    localuser    remoteusername    remoteport    security    foldersynchronization    delete_remote    last_sync_timestamp    last_sync_exit_code
+        Should Be Equal    ${props['${key}']}    ${task_before['${key}']}    ${key} changed across the update
+    END
+    Should Be True    ${props['has_log']}
+    ${log} =    Run task    module/${imapsync_module_id}/get-log    {"task_id": "28ofi1", "localuser": "u2"}
+    Should Not Be Empty    ${log['log_content']}
+
+Check the task still syncs after the update
+    Skip If    '${SCENARIO}' != 'update'    scenario is ${SCENARIO}, nothing to update
+    FOR    ${i}    IN RANGE    2
+        ${rc} =    Execute Command    MAIL_SERVER=smtp://127.0.0.1:10587 bash /tmp/test-msa.sh u3@domain.test u1@domain.test
+        ...    return_rc=True  return_stdout=False
+        Should Be Equal As Integers    ${rc}  0
+    END
+    ${rc} =    Execute Command    api-cli run module/${imapsync_module_id}/start-task --data '{"localuser": "u2","task_id": "28ofi1"}'
+    ...    return_rc=True  return_stdout=False
+    Should Be Equal As Integers    ${rc}  0
+    Wait Until Keyword Succeeds    60 times    2 seconds    u2 has 7 messages
 
 Create Public and Shared folders with subfolders on u3
     Execute Command    runagent -m ${MID} podman exec dovecot doveadm mailbox create -u u3 Public    return_rc=True
