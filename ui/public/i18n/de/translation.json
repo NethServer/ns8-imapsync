@@ -97,7 +97,15 @@
         "delete_remote_older_error": "Muss eine Zahl zwischen 1 und 99999 sein",
         "link_imapsync_manual_page_text": "Imapsync Anleitung",
         "delete_remote_older": "Löschen von Nachrichten älter als eine bestimmte Anzahl von Tagen",
-        "sieve_enabled": "Sieve filter"
+        "sieve_enabled": "Sieve filter",
+        "sync_error": "Error",
+        "sync_never": "Never",
+        "log_truncated": "The log is large: showing only the last 100 KB. The full log is available on the server.",
+        "stop_service_first": "Stop the service before using this action",
+        "download_log": "Download log",
+        "col_last_sync": "Last sync",
+        "validation_failed": "The task could not be validated, check the settings and the module logs",
+        "sync_success": "Success"
     },
     "error": {
         "403": "Vorgang nicht autorisiert",
@@ -127,7 +135,8 @@
         "create-task": "Aufgabe erstellen",
         "configure-module": "Modul konfigurieren",
         "get-configuration": "Konfiguration abrufen",
-        "get-name": "Name abrufen"
+        "get-name": "Name abrufen",
+        "get-log": "Get log"
     },
     "common": {
         "required": "Erforderlich",
