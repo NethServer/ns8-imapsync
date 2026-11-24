@@ -97,7 +97,15 @@
         "delete_remote_older_helper": "நாட்களின் எண்ணிக்கை",
         "link_imapsync_manual_page_text": "Imapsync கையேடு",
         "delete_remote_older": "ஒரு குறிப்பிட்ட எண்ணிக்கையிலான நாட்களை விட பழைய செய்திகளை நீக்கவும்",
-        "sieve_enabled": "சல்லடை வடிகட்டி"
+        "sieve_enabled": "சல்லடை வடிகட்டி",
+        "sync_error": "Error",
+        "sync_never": "Never",
+        "log_truncated": "The log is large: showing only the last 100 KB. The full log is available on the server.",
+        "stop_service_first": "Stop the service before using this action",
+        "download_log": "Download log",
+        "col_last_sync": "Last sync",
+        "validation_failed": "The task could not be validated, check the settings and the module logs",
+        "sync_success": "Success"
     },
     "action": {
         "Tasks_list_error": "செயல் பட்டியல் பணிகளில் பிழை",
@@ -115,7 +123,8 @@
         "create-task": "பணியை உருவாக்கவும்",
         "configure-module": "தொகுதியை உள்ளமைக்கவும்",
         "get-configuration": "உள்ளமைவைப் பெறுங்கள்",
-        "get-name": "பெயரைப் பெறுங்கள்"
+        "get-name": "பெயரைப் பெறுங்கள்",
+        "get-log": "Get log"
     },
     "error": {
         "generic_error": "ஏதோ தவறு நடந்தது",

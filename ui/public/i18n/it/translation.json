@@ -65,7 +65,8 @@
         "list-informations": "Elenco informazioni",
         "start-all-tasks": "Avvia tutti i task",
         "stop-all-tasks": "Ferma tutti i task",
-        "create-task": "Crea task"
+        "create-task": "Crea task",
+        "get-log": "Get log"
     },
     "task": {
         "cannot_create_task": "Impossibile eseguire il task {action}"
@@ -158,6 +159,14 @@
         "link_imapsync_manual_page_text": "Manuale Imapsync",
         "delete_remote_older": "Eliminare i messaggi più vecchi di un certo numero di giorni",
         "cron_enabled": "Esegui ad intervalli fissi (in minuti)",
-        "sieve_enabled": "Filtro Sieve"
+        "sieve_enabled": "Filtro Sieve",
+        "sync_error": "Error",
+        "sync_never": "Never",
+        "log_truncated": "The log is large: showing only the last 100 KB. The full log is available on the server.",
+        "stop_service_first": "Stop the service before using this action",
+        "download_log": "Download log",
+        "col_last_sync": "Last sync",
+        "validation_failed": "The task could not be validated, check the settings and the module logs",
+        "sync_success": "Success"
     }
 }
